@@ -1,0 +1,6 @@
+[misc]
+cleanup = true
+assume_yes = true
+ask_retry = false
+no_self_update = false
+disable = ["pkg"]

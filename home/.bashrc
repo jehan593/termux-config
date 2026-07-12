@@ -1,0 +1,324 @@
+# ==============================================================================
+# TERMINAL CONFIGURATION (Nord Aesthetic)
+# ==============================================================================
+source "$TERMUX_CONFIG_PATH/helpers/common-helpers.sh"
+
+if ! _test_dependencies "starship" "zoxide" "nvim" "fzf" "fd" "trash-put" "trash-empty" "termux-open-url"; then
+    _print_status "error" "Skipping shell configuration. Run setup.sh to install missing dependencies."
+    unset PROMPT_COMMAND
+    PS1='\u@\h:\w\$ '
+    return 1
+fi
+
+# --- History Settings ---
+HISTSIZE=10000
+HISTFILESIZE=20000
+HISTCONTROL=ignoredups:erasedups
+shopt -s histappend
+
+# --- Default Editor ---
+export EDITOR=nvim
+
+eval "$(starship init bash)"
+eval "$(zoxide init bash)"
+
+# --- System Functions ---
+
+sys() {
+    # 1. Data Gathering
+    local pkg_count=$(dpkg --get-selections 2>/dev/null | wc -l)
+    local ker=$(uname -r | cut -d'-' -f1)
+    local cuser=$(whoami)
+    local mem=$(free -h | awk '/^Mem:/ {print $3 " / " $2}')
+    local uptime_str=$(uptime -p | sed 's/up //')
+    local storage=$(df -h /data 2>/dev/null | awk 'NR==2{print $3 " / " $2 " (" $5 " used)"}')
+    local cpu_load=$(uptime | awk -F'load average: ' '{split($2,a,","); gsub(/ /,"",a[1]); print a[1]}')
+
+    # 2. Battery Logic
+    local batt_raw=$(timeout 2 termux-battery-status 2>/dev/null)
+    local batt_pct batt_state
+    eval "$(echo "$batt_raw" | awk -F'[:,]' '
+        /percentage/ { gsub(/ /,"",$2); print "batt_pct=" $2 }
+        /status/     { gsub(/[" ]/,"",$2); print "batt_state=" $2 }
+    ')"
+
+    if [[ -z "$batt_pct" ]]; then
+        local batt_status="N/A"
+    else
+        if   [[ "$batt_pct" -ge 90 ]]; then local batt_icon="󰁹"
+        elif [[ "$batt_pct" -ge 70 ]]; then local batt_icon="󰂀"
+        elif [[ "$batt_pct" -ge 50 ]]; then local batt_icon="󰁾"
+        elif [[ "$batt_pct" -ge 20 ]]; then local batt_icon="󰁼"
+        else local batt_icon="󰁺"; fi
+        [[ "$batt_state" == "CHARGING" ]] && batt_icon="󰂄"
+        local batt_status="${batt_icon} ${batt_pct}% (${batt_state,,})"
+    fi
+
+    # 3. Network Logic
+    local ip_addr=$(timeout 2 termux-wifi-connectioninfo 2>/dev/null | grep -i '"ip"' | awk -F'"' '{print $4}' | grep -v '^0')
+    [[ -z "$ip_addr" ]] && ip_addr="-"
+
+    # 4. Formatting and Output
+    local f="${NORD_BLUE}%s${RST}  %-12s ${NORD_SNOW_1}%s${RST}\n"
+
+    _print_header "Termux Android" ""
+
+    printf "$f" "󰩟" "Local IP"   "$ip_addr"
+    printf "$f" "" "User"       "$cuser"
+    printf "$f" "󱑎" "Uptime"     "$uptime_str"
+    printf "$f" "󰟾" "Kernel"     "$ker"
+    printf "$f" "󰻠" "CPU Load"   "$cpu_load"
+    printf "$f" "󰍛" "Memory"     "$mem"
+    printf "$f" "󰋊" "Storage"    "$storage"
+    printf "$f" "󰏖" "Packages"   "$pkg_count"
+    printf "$f" "󱊟" "Battery"    "$batt_status"
+    printf "$f" "" "Shell"      "Bash ${BASH_VERSION%%(*}"
+
+    echo ""
+}
+
+cup() {
+    _print_header "Checking Updates" ""
+
+    pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1
+    local upgradable=$(apt list --upgradable 2>/dev/null | grep '\[upgradable')
+
+    if [ -z "$upgradable" ]; then
+        _print_status "success" "Up to date."
+    else
+        echo -e "\n${NORD_YELLOW}Upgradable Packages:${RST}"
+        echo "$upgradable" | awk -F'/' '{print $1}' | while read -r pkg; do
+            echo -e "${NORD_BLUE}-${RST} ${NORD_SNOW_1}${pkg}${RST}"
+        done
+    fi
+    echo ""
+}
+
+upp() {
+    _print_header "Upgrading Packages" ""
+    if pkg upgrade -y; then
+        _print_status "success" "Upgrade complete."
+    else
+        _print_status "error" "Upgrade failed."
+    fi
+    echo ""
+}
+
+upall() {
+    upp
+    upc
+}
+
+upc() {
+    _print_header "Syncing Dotfiles" ""
+    if git -C "$TERMUX_CONFIG_PATH" pull --rebase --autostash; then
+        _print_status "success" "Sync complete."
+        echo -e "${NORD_YELLOW}Run 'reload' to apply updated configuration.${RST}"
+        echo ""
+    else
+        _print_status "error" "Sync failed."
+        echo ""
+    fi
+}
+
+inst() {
+    local selected=$(apt-cache pkgnames 2>/dev/null | sort | fzf \
+        -m \
+        --header='(TAB: Select, Enter: Install)' \
+        --prompt="Install > " \
+        --preview='apt-cache show {1} 2>/dev/null' \
+        --preview-window=down:10:hidden:wrap \
+        --bind 'ctrl-p:toggle-preview' | tr '\n' ' ' | sed 's/ $//')
+
+    [[ -z "$selected" ]] && return 0
+
+    local count=$(echo "$selected" | wc -w)
+
+    echo -e "\n${NORD_GREEN}Selected to install:${RST}"
+    echo "$selected" | sed 's/ /\n/g; s/^/+ /'
+    echo ""
+    
+    _print_header "Installing Packages" ""
+    history -s "pkg install -y $selected"
+    if pkg install -y $selected; then
+        _print_status "success" "Installed successfully."
+    else
+        _print_status "error" "Installation failed."
+    fi
+}
+
+uinst() {
+    local selected=$(dpkg --get-selections 2>/dev/null | grep -v deinstall | awk '{print $1}' | sort | fzf \
+        -m \
+        --header='(TAB: Select, Enter: Uninstall)' \
+        --prompt="Uninstall > " \
+        --preview='apt-cache show {1} 2>/dev/null' \
+        --preview-window=down:10:hidden:wrap \
+        --bind 'ctrl-p:toggle-preview' | tr '\n' ' ' | sed 's/ $//')
+
+    [[ -z "$selected" ]] && return 0
+
+    local count=$(echo "$selected" | wc -w)
+
+    echo -e "\n${NORD_RED}Selected for removal:${RST}"
+    echo "$selected" | sed 's/ /\n/g; s/^/- /'
+    echo ""
+    
+    _print_header "Uninstalling Packages" ""
+    history -s "pkg uninstall -y $selected"
+    if pkg uninstall -y $selected; then
+        _print_status "success" "Uninstall complete."
+    else
+        _print_status "info" "Cancelled."
+        echo ""
+    fi
+}
+
+cleanup() {
+    _print_header "System Cleanup" ""
+    pkg clean
+    if apt autoremove -y; then
+        _print_status "success" "Cleanup complete."
+    else
+        _print_status "error" "Cleanup failed."
+    fi
+
+    if [ -d "$HOME/.trash" ] && [ -n "$(ls -A "$HOME/.trash" 2>/dev/null)" ]; then
+        local trash_size=$(du -sh "$HOME/.trash" 2>/dev/null | awk '{print $1}')
+        yes | trash-empty --trash-dir "$HOME/.trash" 0
+        _print_status "success" "Trash emptied."
+    fi
+    echo ""
+}
+
+sz() {
+    if [ -z "$1" ]; then
+        echo -e "${NORD_YELLOW}Usage: sz <file/folder>${RST}"
+        return 1
+    fi
+    if [ ! -e "$1" ]; then
+        echo -e "${NORD_RED}Path not found: $1${RST}"
+        return 1
+    fi
+    local size=$(du -sh "$1" | awk '{print $1}')
+    echo -e "${NORD_BLUE}$1${RST} ${NORD_SNOW_1}→ ${size}${RST}"
+}
+
+trash() {
+    local targets=()
+    for arg in "$@"; do
+        if [[ -e "$arg" || -L "$arg" ]]; then
+            targets+=("$arg")
+        else
+            echo "Error: Path not found: $arg"
+        fi
+    done
+
+    [[ ${#targets[@]} -eq 0 ]] && return 1
+    command mkdir -p "$HOME/.trash"
+    for item in "${targets[@]}"; do
+        if trash-put --trash-dir "$HOME/.trash" "$item"; then
+            echo "Trashed: $item"
+        else
+            echo "Failed to trash: $item"
+        fi
+    done
+}
+
+# --- Navigation & Utilities ---
+
+alias ls='ls --color=auto -F'
+alias lsl='ls -lh'      
+alias lsa='ls -a'      
+alias lsla='ls -lah'    
+alias rmr='rm -r'
+alias rmrf='rm -rf'
+alias cpr='cp -r'
+alias cpa='cp -a'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias sd='cd ~/storage/shared'
+alias reload='source ~/.bashrc && echo -e "${NORD_GREEN}Shell reloaded.${RST}"'
+alias clear='clear && sys'
+
+ff() {
+    if [ -z "$1" ]; then
+        echo -e "${NORD_YELLOW}Usage: ff <path>${RST}"
+        return 1
+    fi
+
+    local search_path="$1"
+
+    if [ ! -e "$search_path" ]; then
+        echo -e "${NORD_RED}Path not found: $search_path${RST}"
+        return 1
+    fi
+
+    local selection
+    if command -v fd > /dev/null 2>&1; then
+        selection=$(fd --hidden --color never . "$search_path" 2>/dev/null | fzf --no-multi --layout=reverse --height=40% --header="Searching: $search_path")
+    else
+        selection=$(find "$search_path" 2>/dev/null | fzf --no-multi --layout=reverse --height=40% --header="Searching: $search_path")
+    fi
+
+    if [ -n "$selection" ]; then
+        local escaped="\"${selection}\""
+        echo -e "${NORD_CYAN}Selected: ${escaped}${RST}"
+
+        if command -v termux-clipboard-set >/dev/null 2>&1; then
+            echo -n "$escaped" | termux-clipboard-set
+            _print_status "success" "Copied to clipboard."
+        fi
+    fi
+}
+
+_fhist() {
+    local selections=$(history | awk '{$1=""; print substr($0,2)}' | tac | awk '!seen[$0]++' | fzf \
+        -m \
+        --header='(Enter: Run)' \
+        --prompt="History > " \
+    )
+
+    if [ -n "$selections" ]; then
+        local cmd=""
+        while IFS= read -r line; do
+            if [ -z "$cmd" ]; then
+                cmd="$line"
+            else
+                cmd="$cmd & $line"
+            fi
+        done <<< "$selections"
+        
+        READLINE_LINE="$cmd"
+        READLINE_POINT=${#cmd}
+    fi
+}
+bind -x '"\C-h": _fhist'
+
+wa() {
+    if [[ -z "$1" ]]; then
+        echo -e "${NORD_YELLOW}Usage: wa <phone_number>${RST}"
+        echo -e "${NORD_POLAR_4}Example: wa 0771234567${RST}"
+        return 1
+    fi
+
+    local number="${1//[^0-9+]/}"
+
+    if [[ -z "$number" ]]; then
+        echo -e "${NORD_RED}Invalid number: $1${RST}"
+        return 1
+    fi
+
+    if [[ "$number" != +* ]]; then
+        number="${number#0}"
+        [[ "$number" != 94* ]] && number="94${number}"
+    fi
+
+    local url="https://wa.me/${number}"
+    local display="${number#+}"
+    echo -e "${NORD_SNOW_1}Opening WhatsApp chat → ${NORD_BLUE}+${display}${RST}"
+    termux-open-url "$url"
+}
+
+# --- Initialization ---
+sys

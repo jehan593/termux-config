@@ -1,0 +1,213 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# ==============================================================================
+# YEARWALL MANAGER
+# ==============================================================================
+source "$TERMUX_CONFIG_PATH/helpers/common-helpers.sh"
+source "$TERMUX_CONFIG_PATH/scripts/yearwall/yearwall-helper.sh"
+
+_test_dependencies "magick" "termux-wallpaper" || exit 1
+
+YEARWALL_DIR="$HOME/.config/termux-config-files/yearwall"
+YEARWALL_UPDATE_SCRIPT="$YEARWALL_DIR/yearwall_update.sh"
+BOOT_DIR="$HOME/.termux/boot"
+YEARWALL_BOOT_SCRIPT="$BOOT_DIR/50-yearwall.sh"
+
+# --- Actions ---
+
+check_status() {
+    _print_header "Checking Yearwall Status" ""
+
+    local is_setup=true
+
+    # 1. Check Script & Directories
+    if [ -f "$YEARWALL_UPDATE_SCRIPT" ] && [ -x "$YEARWALL_UPDATE_SCRIPT" ]; then
+        _print_status "success" "Core script: Configured and executable."
+    else
+        _print_status "error" "Core script: Missing or not executable."
+        is_setup=false
+    fi
+
+    # 2. Check Crontab Automation
+    if command -v crontab &>/dev/null; then
+        if crontab -l 2>/dev/null | grep -q "yearwall_update.sh"; then
+            _print_status "success" "Automation: Cron job active."
+        else
+            _print_status "warning" "Automation: No cron job found."
+            is_setup=false
+        fi
+    else
+        _print_status "warning" "Automation: crontab is not installed."
+        is_setup=false
+    fi
+
+    # 3. Check Boot Persistence
+    if [ -f "$YEARWALL_BOOT_SCRIPT" ] && [ -x "$YEARWALL_BOOT_SCRIPT" ]; then
+        _print_status "success" "Persistence: Boot script active."
+    else
+        _print_status "warning" "Persistence: Boot script missing or not executable."
+        is_setup=false
+    fi
+
+    # 4. Summary Conclusion
+    echo ""
+    if [ "$is_setup" = true ]; then
+        _print_status "success" "Conclusion: Yearwall is fully installed and active."
+    else
+        _print_status "warning" "Conclusion: Yearwall is incomplete or not installed."
+    fi
+    echo ""
+}
+
+setup_yearwall() {
+    _print_header "Setting up Yearwall" ""
+
+    # 1. Create generator script
+    mkdir -p "$YEARWALL_DIR"
+    cat << 'EOF' > "$YEARWALL_UPDATE_SCRIPT"
+#!/data/data/com.termux/files/usr/bin/bash
+# 1. Get current date info
+year=$(date +%Y)
+current_day=$(( 10#$(date +%j) ))
+total_days=$(( 10#$(date -d "$year-12-31" +%j) ))
+# 2. Calculate percentage
+percent=$(( 100 * current_day / total_days ))
+# 3. Grid settings (21 columns for a balanced look)
+columns=21
+grid_output=""
+red_dot_grid=""
+for (( i=1; i<=total_days; i++ )); do
+    if [ "$i" -le "$current_day" ]; then grid_output+="● ";
+    else grid_output+="○ "; fi
+    if [ "$i" -eq "$current_day" ]; then
+        red_dot_grid+="● "
+    else
+        red_dot_grid+="  "
+    fi
+    if (( i % columns == 0 )); then
+        grid_output+="\n"
+        red_dot_grid+="\n"
+    fi
+done
+# 4. Output path and Font
+OUTPUT="$HOME/.config/termux-config-files/yearwall/yearwall_generated.png"
+left_text="$percent% of $year"
+right_text="$current_day/$total_days"
+MARTIAN_FONT="/data/data/com.termux/files/home/.config/termux-config-files/fonts/MartianMonoNerdFontMono-Regular.ttf"
+# Line tuning — only touch these two:
+LINE_Y=700      # absolute Y position (lower number = higher up)
+LINE_W=10       # thickness in pixels
+# 5. ImageMagick Processing
+# Note: text drawn at pixel offsets (0/1/2) is an intentional fake-bold trick
+# since ImageMagick doesn't support font-weight on arbitrary TTFs.
+magick -size 1080x2400 xc:"rgb(46,52,64)" \
+    \
+    `# -- Dot grid (centered) --` \
+    -gravity Center \
+    -font "DejaVu-Sans-Mono" -pointsize 35 -interline-spacing 4 \
+    -fill "rgb(229,233,240)" -draw "text 0,-80 \"$grid_output\"" \
+    -fill "rgb(229,233,240)" -draw "text 1,-80 \"$grid_output\"" \
+    -fill "rgb(229,233,240)" -draw "text 2,-80 \"$grid_output\"" \
+    -fill "rgb(229,233,240)" -draw "text 0,-81 \"$grid_output\"" \
+    -fill "rgb(191,97,106)"  -draw "text 0,-80 \"$red_dot_grid\"" \
+    -fill "rgb(191,97,106)"  -draw "text 1,-80 \"$red_dot_grid\"" \
+    -fill "rgb(191,97,106)"  -draw "text 2,-80 \"$red_dot_grid\"" \
+    -fill "rgb(191,97,106)"  -draw "text 0,-81 \"$red_dot_grid\"" \
+    \
+    `# -- Separator line: adjust LINE_Y and LINE_W at top of script --` \
+    -gravity None \
+    -stroke "rgb(136,192,208)" -strokewidth $LINE_W \
+    -draw "line 95,$LINE_Y 968,$LINE_Y" \
+    -stroke none \
+    \
+    `# -- Header left --` \
+    -gravity West \
+    -font "$MARTIAN_FONT" -pointsize 35 \
+    -fill "rgb(136,192,208)" -draw "text 95,-535 \"$left_text\"" \
+    -fill "rgb(136,192,208)" -draw "text 96,-535 \"$left_text\"" \
+    -fill "rgb(136,192,208)" -draw "text 97,-535 \"$left_text\"" \
+    \
+    `# -- Header right --` \
+    -gravity East \
+    -font "$MARTIAN_FONT" -pointsize 35 \
+    -fill "rgb(235,203,139)" -draw "text 112,-535 \"$right_text\"" \
+    -fill "rgb(235,203,139)" -draw "text 113,-535 \"$right_text\"" \
+    -fill "rgb(235,203,139)" -draw "text 114,-535 \"$right_text\"" \
+    \
+    "$OUTPUT"
+# 6. Apply Wallpaper
+# Note: -l also sets the lock screen wallpaper
+termux-wallpaper -f "$OUTPUT" -l
+EOF
+    chmod +x "$YEARWALL_UPDATE_SCRIPT"
+    _print_status "success" "Script saved."
+
+    # 2. Cron Configuration
+    if command -v crontab &>/dev/null; then
+        if sv-enable crond > /dev/null 2>&1 && \
+           (crontab -l 2>/dev/null | grep -v "yearwall_update.sh"; echo "0 0 * * * $YEARWALL_UPDATE_SCRIPT") | crontab -; then
+            _print_status "success" "Scheduled in crontab."
+        else
+            _print_status "error" "Failed to enable cron service or schedule crontab entry."
+        fi
+    else
+        _print_status "warning" "crontab missing. Skipping automation schedule."
+    fi
+
+    # 3. Boot persistence
+    mkdir -p "$BOOT_DIR"
+    cat > "$YEARWALL_BOOT_SCRIPT" << BOOTEOF
+#!/data/data/com.termux/files/usr/bin/sh
+# Auto-generated by yearwall.sh — do not edit manually
+sleep 10 && $YEARWALL_UPDATE_SCRIPT &
+BOOTEOF
+    chmod +x "$YEARWALL_BOOT_SCRIPT"
+    _print_status "success" "Boot persistence enabled."
+
+    # 4. Run now
+    echo ""
+    if "$YEARWALL_UPDATE_SCRIPT"; then
+        _print_status "success" "Installed successfully."
+    else
+        _print_status "error" "Failed to apply wallpaper."
+    fi
+    echo ""
+}
+
+remove_yearwall() {
+    _print_header "Removing Yearwall Setup" ""
+
+    local had_boot_script=0
+    [ -f "$YEARWALL_BOOT_SCRIPT" ] && had_boot_script=1
+
+    _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$TERMUX_CONFIG_PATH/data/wallpaper/wallpaper.png"
+
+    _print_status "success" "Files removed."
+    _print_status "success" "Wallpaper restored to default."
+
+    command -v crontab &>/dev/null && _print_status "success" "Crontab cleared."
+
+    if [ "$had_boot_script" -eq 1 ]; then
+        _print_status "success" "Boot script removed."
+    else
+        _print_status "warning" "Boot script already removed."
+    fi
+
+    echo ""
+    _print_status "success" "Remove complete."
+    echo ""
+}
+
+# --- Router ---
+case "$1" in
+    setup)  setup_yearwall ;;
+    rm)     remove_yearwall ;;
+    status) check_status ;;
+    *)
+        _print_header "Lock Screen Year Progress Wallpaper Manager (yearwall)" ""
+        echo "setup   - setup wallpaper"
+        echo "status  - check configuration and automation status"
+        echo "rm      - remove wallpaper setup"
+        echo ""
+        exit 1
+        ;;
+esac
