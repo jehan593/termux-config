@@ -2,7 +2,9 @@
 # ==============================================================================
 # YEARWALL MANAGER
 # ==============================================================================
-source "$TERMUX_CONFIG_PATH/helpers/common-helpers.sh"
+source "$TERMUX_CONFIG_PATH/helpers/colors-nord.sh"
+source "$TERMUX_CONFIG_PATH/helpers/print.sh"
+source "$TERMUX_CONFIG_PATH/helpers/dependencies.sh"
 source "$TERMUX_CONFIG_PATH/scripts/yearwall/yearwall-helper.sh"
 
 _test_dependencies "magick" "termux-wallpaper" || exit 1
@@ -15,51 +17,51 @@ YEARWALL_BOOT_SCRIPT="$BOOT_DIR/50-yearwall.sh"
 # --- Actions ---
 
 check_status() {
-    _print_header "Checking Yearwall Status" ""
+    printfc "$NORD_BLUE" "\nChecking Yearwall Status\n"
 
     local is_setup=true
 
     # 1. Check Script & Directories
     if [ -f "$YEARWALL_UPDATE_SCRIPT" ] && [ -x "$YEARWALL_UPDATE_SCRIPT" ]; then
-        _print_status "success" "Core script: Configured and executable."
+        printfc "$NORD_GREEN" "Core script: Configured and executable.\n"
     else
-        _print_status "error" "Core script: Missing or not executable."
+        printfc "$NORD_RED" "Core script: Missing or not executable.\n"
         is_setup=false
     fi
 
     # 2. Check Crontab Automation
     if command -v crontab &>/dev/null; then
         if crontab -l 2>/dev/null | grep -q "yearwall_update.sh"; then
-            _print_status "success" "Automation: Cron job active."
+            printfc "$NORD_GREEN" "Automation: Cron job active.\n"
         else
-            _print_status "warning" "Automation: No cron job found."
+            printfc "$NORD_YELLOW" "Automation: No cron job found.\n"
             is_setup=false
         fi
     else
-        _print_status "warning" "Automation: crontab is not installed."
+        printfc "$NORD_YELLOW" "Automation: crontab is not installed.\n"
         is_setup=false
     fi
 
     # 3. Check Boot Persistence
     if [ -f "$YEARWALL_BOOT_SCRIPT" ] && [ -x "$YEARWALL_BOOT_SCRIPT" ]; then
-        _print_status "success" "Persistence: Boot script active."
+        printfc "$NORD_GREEN" "Persistence: Boot script active.\n"
     else
-        _print_status "warning" "Persistence: Boot script missing or not executable."
+        printfc "$NORD_YELLOW" "Persistence: Boot script missing or not executable.\n"
         is_setup=false
     fi
 
     # 4. Summary Conclusion
     echo ""
     if [ "$is_setup" = true ]; then
-        _print_status "success" "Conclusion: Yearwall is fully installed and active."
+        printfc "$NORD_GREEN" "Conclusion: Yearwall is fully installed and active.\n"
     else
-        _print_status "warning" "Conclusion: Yearwall is incomplete or not installed."
+        printfc "$NORD_YELLOW" "Conclusion: Yearwall is incomplete or not installed.\n"
     fi
     echo ""
 }
 
 setup_yearwall() {
-    _print_header "Setting up Yearwall" ""
+    printfc "$NORD_BLUE" "\nSetting up Yearwall\n"
 
     # 1. Create generator script
     mkdir -p "$YEARWALL_DIR"
@@ -139,18 +141,18 @@ magick -size 1080x2400 xc:"rgb(46,52,64)" \
 termux-wallpaper -f "$OUTPUT" -l
 EOF
     chmod +x "$YEARWALL_UPDATE_SCRIPT"
-    _print_status "success" "Script saved."
+    printfc "$NORD_GREEN" "Script saved.\n"
 
     # 2. Cron Configuration
     if command -v crontab &>/dev/null; then
         if sv-enable crond > /dev/null 2>&1 && \
            (crontab -l 2>/dev/null | grep -v "yearwall_update.sh"; echo "0 0 * * * $YEARWALL_UPDATE_SCRIPT") | crontab -; then
-            _print_status "success" "Scheduled in crontab."
+            printfc "$NORD_GREEN" "Scheduled in crontab.\n"
         else
-            _print_status "error" "Failed to enable cron service or schedule crontab entry."
+            printfc "$NORD_RED" "Failed to enable cron service or schedule crontab entry.\n"
         fi
     else
-        _print_status "warning" "crontab missing. Skipping automation schedule."
+        printfc "$NORD_YELLOW" "crontab missing. Skipping automation schedule.\n"
     fi
 
     # 3. Boot persistence
@@ -161,39 +163,39 @@ EOF
 sleep 10 && $YEARWALL_UPDATE_SCRIPT &
 BOOTEOF
     chmod +x "$YEARWALL_BOOT_SCRIPT"
-    _print_status "success" "Boot persistence enabled."
+    printfc "$NORD_GREEN" "Boot persistence enabled.\n"
 
     # 4. Run now
     echo ""
     if "$YEARWALL_UPDATE_SCRIPT"; then
-        _print_status "success" "Installed successfully."
+        printfc "$NORD_GREEN" "Installed successfully.\n"
     else
-        _print_status "error" "Failed to apply wallpaper."
+        printfc "$NORD_RED" "Failed to apply wallpaper.\n"
     fi
     echo ""
 }
 
 remove_yearwall() {
-    _print_header "Removing Yearwall Setup" ""
+    printfc "$NORD_BLUE" "\nRemoving Yearwall Setup\n"
 
     local had_boot_script=0
     [ -f "$YEARWALL_BOOT_SCRIPT" ] && had_boot_script=1
 
     _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$TERMUX_CONFIG_PATH/data/wallpaper/wallpaper.png"
 
-    _print_status "success" "Files removed."
-    _print_status "success" "Wallpaper restored to default."
+    printfc "$NORD_GREEN" "Files removed.\n"
+    printfc "$NORD_GREEN" "Wallpaper restored to default.\n"
 
-    command -v crontab &>/dev/null && _print_status "success" "Crontab cleared."
+    command -v crontab &>/dev/null && printfc "$NORD_GREEN" "Crontab cleared.\n"
 
     if [ "$had_boot_script" -eq 1 ]; then
-        _print_status "success" "Boot script removed."
+        printfc "$NORD_GREEN" "Boot script removed.\n"
     else
-        _print_status "warning" "Boot script already removed."
+        printfc "$NORD_YELLOW" "Boot script already removed.\n"
     fi
 
     echo ""
-    _print_status "success" "Remove complete."
+    printfc "$NORD_GREEN" "Remove complete.\n"
     echo ""
 }
 
@@ -203,7 +205,7 @@ case "$1" in
     rm)     remove_yearwall ;;
     status) check_status ;;
     *)
-        _print_header "Lock Screen Year Progress Wallpaper Manager (yearwall)" ""
+        printfc "$NORD_BLUE" "\nLock Screen Year Progress Wallpaper Manager (yearwall)\n"
         echo "setup   - setup wallpaper"
         echo "status  - check configuration and automation status"
         echo "rm      - remove wallpaper setup"

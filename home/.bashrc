@@ -1,10 +1,12 @@
 # ==============================================================================
 # TERMINAL CONFIGURATION (Nord Aesthetic)
 # ==============================================================================
-source "$TERMUX_CONFIG_PATH/helpers/common-helpers.sh"
+source "$TERMUX_CONFIG_PATH/helpers/colors-nord.sh"
+source "$TERMUX_CONFIG_PATH/helpers/print.sh"
+source "$TERMUX_CONFIG_PATH/helpers/dependencies.sh"
 
 if ! _test_dependencies "starship" "zoxide" "nvim" "fzf" "fd" "trash-put" "trash-empty" "termux-open-url"; then
-    _print_status "error" "Skipping shell configuration. Run setup.sh to install missing dependencies."
+    printfc "$NORD_RED" "Skipping shell configuration. Run setup.sh to install missing dependencies.\n"
     unset PROMPT_COMMAND
     PS1='\u@\h:\w\$ '
     return 1
@@ -59,47 +61,45 @@ sys() {
     [[ -z "$ip_addr" ]] && ip_addr="-"
 
     # 4. Formatting and Output
-    local f="${NORD_BLUE}%s${RST}  %-12s ${NORD_SNOW_1}%s${RST}\n"
+    printfc "$NORD_BLUE" "\nTermux Android\n"
 
-    _print_header "Termux Android" ""
-
-    printf "$f" "󰩟" "Local IP"   "$ip_addr"
-    printf "$f" "" "User"       "$cuser"
-    printf "$f" "󱑎" "Uptime"     "$uptime_str"
-    printf "$f" "󰟾" "Kernel"     "$ker"
-    printf "$f" "󰻠" "CPU Load"   "$cpu_load"
-    printf "$f" "󰍛" "Memory"     "$mem"
-    printf "$f" "󰋊" "Storage"    "$storage"
-    printf "$f" "󰏖" "Packages"   "$pkg_count"
-    printf "$f" "󱊟" "Battery"    "$batt_status"
-    printf "$f" "" "Shell"      "Bash ${BASH_VERSION%%(*}"
+    printfc "$NORD_SNOW_1" "%s  %-12s %s\n" "󰩟" "Local IP"   "$ip_addr"
+    printfc "$NORD_SNOW_1" "%s  %-12s %s\n" ""  "User"       "$cuser"
+    printfc "$NORD_SNOW_1" "%s  %-12s %s\n" "󱑎" "Uptime"     "$uptime_str"
+    printfc "$NORD_SNOW_1" "%s  %-12s %s\n" "󰟾" "Kernel"     "$ker"
+    printfc "$NORD_SNOW_1" "%s  %-12s %s\n" "󰻠" "CPU Load"   "$cpu_load"
+    printfc "$NORD_SNOW_1" "%s  %-12s %s\n" "󰍛" "Memory"     "$mem"
+    printfc "$NORD_SNOW_1" "%s  %-12s %s\n" "󰋊" "Storage"    "$storage"
+    printfc "$NORD_SNOW_1" "%s  %-12s %s\n" "󰏖" "Packages"   "$pkg_count"
+    printfc "$NORD_SNOW_1" "%s  %-12s %s\n" "󱊟" "Battery"    "$batt_status"
+    printfc "$NORD_SNOW_1" "%s  %-12s %s\n" ""  "Shell"      "Bash ${BASH_VERSION%%(*}"
 
     echo ""
 }
 
 cup() {
-    _print_header "Checking Updates" ""
+    printfc "$NORD_BLUE" "\nChecking Updates\n"
 
     pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1
     local upgradable=$(apt list --upgradable 2>/dev/null | grep '\[upgradable')
 
     if [ -z "$upgradable" ]; then
-        _print_status "success" "Up to date."
+        printfc "$NORD_GREEN" "Up to date.\n"
     else
-        echo -e "\n${NORD_YELLOW}Upgradable Packages:${RST}"
+        printfc "$NORD_YELLOW" "\nUpgradable Packages:\n"
         echo "$upgradable" | awk -F'/' '{print $1}' | while read -r pkg; do
-            echo -e "${NORD_BLUE}-${RST} ${NORD_SNOW_1}${pkg}${RST}"
+            printfc "$NORD_SNOW_1" "- %s\n" "$pkg"
         done
     fi
     echo ""
 }
 
 upp() {
-    _print_header "Upgrading Packages" ""
+    printfc "$NORD_BLUE" "\nUpgrading Packages\n"
     if pkg upgrade -y; then
-        _print_status "success" "Upgrade complete."
+        printfc "$NORD_GREEN" "Upgrade complete.\n"
     else
-        _print_status "error" "Upgrade failed."
+        printfc "$NORD_RED" "Upgrade failed.\n"
     fi
     echo ""
 }
@@ -110,13 +110,13 @@ upall() {
 }
 
 upc() {
-    _print_header "Syncing Dotfiles" ""
+    printfc "$NORD_BLUE" "\nSyncing Dotfiles\n"
     if git -C "$TERMUX_CONFIG_PATH" pull --rebase --autostash; then
-        _print_status "success" "Sync complete."
-        echo -e "${NORD_YELLOW}Run 'reload' to apply updated configuration.${RST}"
+        printfc "$NORD_GREEN" "Sync complete.\n"
+        printfc "$NORD_YELLOW" "Run 'reload' to apply updated configuration.\n"
         echo ""
     else
-        _print_status "error" "Sync failed."
+        printfc "$NORD_RED" "Sync failed.\n"
         echo ""
     fi
 }
@@ -134,16 +134,16 @@ inst() {
 
     local count=$(echo "$selected" | wc -w)
 
-    echo -e "\n${NORD_GREEN}Selected to install:${RST}"
+    printfc "$NORD_YELLOW" "\nSelected to install:\n"
     echo "$selected" | sed 's/ /\n/g; s/^/+ /'
     echo ""
-    
-    _print_header "Installing Packages" ""
+
+    printfc "$NORD_BLUE" "\nInstalling Packages\n"
     history -s "pkg install -y $selected"
     if pkg install -y $selected; then
-        _print_status "success" "Installed successfully."
+        printfc "$NORD_GREEN" "Installed successfully.\n"
     else
-        _print_status "error" "Installation failed."
+        printfc "$NORD_RED" "Installation failed.\n"
     fi
 }
 
@@ -160,48 +160,48 @@ uinst() {
 
     local count=$(echo "$selected" | wc -w)
 
-    echo -e "\n${NORD_RED}Selected for removal:${RST}"
+    printfc "$NORD_YELLOW" "\nSelected for removal:\n"
     echo "$selected" | sed 's/ /\n/g; s/^/- /'
     echo ""
-    
-    _print_header "Uninstalling Packages" ""
+
+    printfc "$NORD_BLUE" "\nUninstalling Packages\n"
     history -s "pkg uninstall -y $selected"
     if pkg uninstall -y $selected; then
-        _print_status "success" "Uninstall complete."
+        printfc "$NORD_GREEN" "Uninstall complete.\n"
     else
-        _print_status "info" "Cancelled."
+        printfc "$NORD_YELLOW" "Cancelled.\n"
         echo ""
     fi
 }
 
 cleanup() {
-    _print_header "System Cleanup" ""
+    printfc "$NORD_BLUE" "\nSystem Cleanup\n"
     pkg clean
     if apt autoremove -y; then
-        _print_status "success" "Cleanup complete."
+        printfc "$NORD_GREEN" "Cleanup complete.\n"
     else
-        _print_status "error" "Cleanup failed."
+        printfc "$NORD_RED" "Cleanup failed.\n"
     fi
 
     if [ -d "$HOME/.trash" ] && [ -n "$(ls -A "$HOME/.trash" 2>/dev/null)" ]; then
         local trash_size=$(du -sh "$HOME/.trash" 2>/dev/null | awk '{print $1}')
         yes | trash-empty --trash-dir "$HOME/.trash" 0
-        _print_status "success" "Trash emptied."
+        printfc "$NORD_GREEN" "Trash emptied.\n"
     fi
     echo ""
 }
 
 sz() {
     if [ -z "$1" ]; then
-        echo -e "${NORD_YELLOW}Usage: sz <file/folder>${RST}"
+        printfc "$NORD_YELLOW" "Usage: sz <file/folder>\n"
         return 1
     fi
     if [ ! -e "$1" ]; then
-        echo -e "${NORD_RED}Path not found: $1${RST}"
+        printfc "$NORD_RED" "Path not found: %s\n" "$1"
         return 1
     fi
     local size=$(du -sh "$1" | awk '{print $1}')
-    echo -e "${NORD_BLUE}$1${RST} ${NORD_SNOW_1}→ ${size}${RST}"
+    printfc "$NORD_SNOW_1" "%s → %s\n" "$1" "$size"
 }
 
 trash() {
@@ -228,9 +228,9 @@ trash() {
 # --- Navigation & Utilities ---
 
 alias ls='ls --color=auto -F'
-alias lsl='ls -lh'      
-alias lsa='ls -a'      
-alias lsla='ls -lah'    
+alias lsl='ls -lh'
+alias lsa='ls -a'
+alias lsla='ls -lah'
 alias rmr='rm -r'
 alias rmrf='rm -rf'
 alias cpr='cp -r'
@@ -238,19 +238,19 @@ alias cpa='cp -a'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias sd='cd ~/storage/shared'
-alias reload='source ~/.bashrc && echo -e "${NORD_GREEN}Shell reloaded.${RST}"'
+alias reload='source ~/.bashrc && printfc "$NORD_GREEN" "Shell reloaded.\n"'
 alias clear='clear && sys'
 
 ff() {
     if [ -z "$1" ]; then
-        echo -e "${NORD_YELLOW}Usage: ff <path>${RST}"
+        printfc "$NORD_YELLOW" "Usage: ff <path>\n"
         return 1
     fi
 
     local search_path="$1"
 
     if [ ! -e "$search_path" ]; then
-        echo -e "${NORD_RED}Path not found: $search_path${RST}"
+        printfc "$NORD_RED" "Path not found: %s\n" "$search_path"
         return 1
     fi
 
@@ -263,11 +263,11 @@ ff() {
 
     if [ -n "$selection" ]; then
         local escaped="\"${selection}\""
-        echo -e "${NORD_CYAN}Selected: ${escaped}${RST}"
+        printfc "$NORD_YELLOW" "Selected: %s\n" "$escaped"
 
         if command -v termux-clipboard-set >/dev/null 2>&1; then
             echo -n "$escaped" | termux-clipboard-set
-            _print_status "success" "Copied to clipboard."
+            printfc "$NORD_GREEN" "Copied to clipboard.\n"
         fi
     fi
 }
@@ -288,7 +288,7 @@ _fhist() {
                 cmd="$cmd & $line"
             fi
         done <<< "$selections"
-        
+
         READLINE_LINE="$cmd"
         READLINE_POINT=${#cmd}
     fi
@@ -297,15 +297,15 @@ bind -x '"\C-h": _fhist'
 
 wa() {
     if [[ -z "$1" ]]; then
-        echo -e "${NORD_YELLOW}Usage: wa <phone_number>${RST}"
-        echo -e "${NORD_POLAR_4}Example: wa 0771234567${RST}"
+        printfc "$NORD_YELLOW" "Usage: wa <phone_number>\n"
+        printfc "$NORD_POLAR_4" "Example: wa 0771234567\n"
         return 1
     fi
 
     local number="${1//[^0-9+]/}"
 
     if [[ -z "$number" ]]; then
-        echo -e "${NORD_RED}Invalid number: $1${RST}"
+        printfc "$NORD_RED" "Invalid number: %s\n" "$1"
         return 1
     fi
 
@@ -316,7 +316,7 @@ wa() {
 
     local url="https://wa.me/${number}"
     local display="${number#+}"
-    echo -e "${NORD_SNOW_1}Opening WhatsApp chat → ${NORD_BLUE}+${display}${RST}"
+    printfc "$NORD_SNOW_1" "Opening WhatsApp chat → +%s\n" "$display"
     termux-open-url "$url"
 }
 

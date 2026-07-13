@@ -6,32 +6,34 @@
 
 CONFIG_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-source "$CONFIG_PATH/helpers/setup-helpers.sh"
+source "$CONFIG_PATH/helpers/colors-standard.sh"
+source "$CONFIG_PATH/helpers/print.sh"
+source "$CONFIG_PATH/helpers/packages.sh"
 
 # ==============================================================================
 # START
 # ==============================================================================
 
-_print_header "Termux Installer"
+printfc "$CYAN" "\nTermux Installer\n"
 
 # ==============================================================================
 # 0. PREREQUISITES CHECK
 # ==============================================================================
 
-_print_header "Prerequisites Check"
+printfc "$BLUE" "\nPrerequisites Check\n"
 
-warn "Ensure all of the following are installed via F-Droid or GitHub Releases (NOT Play Store):"
+printfc "$YELLOW" "Ensure all of the following are installed via F-Droid or GitHub Releases (NOT Play Store):\n"
 echo -e "  - Termux, Termux:API, Termux:Boot, and Termux:Styling"
-warn "Select a single repository mirror via 'termux-change-repo' (not mandatory but recommended)"
+printfc "$YELLOW" "Select a single repository mirror via 'termux-change-repo' (not mandatory but recommended)\n"
 echo ""
 
 read -r -p "Are these ready? [y/N] " prereq_confirm
 case "$prereq_confirm" in
     [yY]|[yY][eE][sS])
-        ok "Prerequisites ready."
+        printfc "$GREEN" "Prerequisites ready.\n"
         ;;
     *)
-        err "Aborted."
+        printfc "$RED" "Aborted.\n"
         exit 1
         ;;
 esac
@@ -42,29 +44,29 @@ esac
 
 if [ ! -d ~/storage ]; then
     termux-setup-storage
-    warn "Allow storage access in prompt..."
+    printfc "$YELLOW" "Allow storage access in prompt...\n"
     sleep 3
 else
-    ok "Storage configured."
+    printfc "$GREEN" "Storage configured.\n"
 fi
 
 # ==============================================================================
 # 1. DEPENDENCIES
 # ==============================================================================
 
-_print_header "Installing Dependencies"
+printfc "$BLUE" "\nInstalling Dependencies\n"
 
 pkg update -y -o Dpkg::Use-Pty=0
 
 for pkg in $SETUP_PKGS; do
     if ! dpkg -s "$pkg" &>/dev/null; then
         if pkg install -y "$pkg"; then
-            ok "Installed $pkg"
+            printfc "$GREEN" "Installed %s\n" "$pkg"
         else
-            err "Failed: $pkg"
+            printfc "$RED" "Failed: %s\n" "$pkg"
         fi
     else
-        ok "$pkg already installed."
+        printfc "$GREEN" "%s already installed.\n" "$pkg"
     fi
 done
 
@@ -72,7 +74,7 @@ done
 # 2. DOTFILE LINKS
 # ==============================================================================
 
-_print_header "Linking Configuration Files"
+printfc "$BLUE" "\nLinking Configuration Files\n"
 
 while IFS= read -r -d '' src; do
     rel="${src#"$CONFIG_PATH/home/"}"
@@ -83,30 +85,30 @@ while IFS= read -r -d '' src; do
         if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$src" ]; then
             rm -f "$dest"
         elif [ -e "$dest.bak" ] || [ -L "$dest.bak" ]; then
-            warn "Backup already exists, discarding current file: $rel"
+            printfc "$YELLOW" "Backup already exists, discarding current file: %s\n" "$rel"
             rm -rf "$dest"
         else
             mv "$dest" "$dest.bak"
-            warn "Backed up existing file: $rel -> $rel.bak"
+            printfc "$YELLOW" "Backed up existing file: %s -> %s.bak\n" "$rel" "$rel"
         fi
     fi
 
     ln -s "$src" "$dest"
-    ok "Linked: $rel"
+    printfc "$GREEN" "Linked: %s\n" "$rel"
 done < <(find "$CONFIG_PATH/home" -type f -print0)
 
 # ==============================================================================
 # 2b. EXPORT GLOBAL CONFIG PATH SYSTEM-WIDE
 # ==============================================================================
 
-_print_header "Configuring Global Environment Variables"
+printfc "$BLUE" "\nConfiguring Global Environment Variables\n"
 
 SYSTEM_PROFILE_DIR="$PREFIX/etc/profile.d"
 CONFIG_ENV_FILE="$SYSTEM_PROFILE_DIR/termux_config.sh"
 
 mkdir -p "$SYSTEM_PROFILE_DIR"
 
-ok "Deploying TERMUX_CONFIG_PATH into system environment..."
+printfc "$GREEN" "Deploying TERMUX_CONFIG_PATH into system environment...\n"
 
 cat > "$CONFIG_ENV_FILE" << EOF
 # Global Configuration Path Environment Variable
@@ -114,30 +116,30 @@ export TERMUX_CONFIG_PATH="$CONFIG_PATH"
 EOF
 
 chmod 755 "$CONFIG_ENV_FILE"
-ok "Created system profile script: $CONFIG_ENV_FILE"
+printfc "$GREEN" "Created system profile script: %s\n" "$CONFIG_ENV_FILE"
 source "$CONFIG_ENV_FILE"
 
 # ==============================================================================
 # 3. TEALDEER
 # ==============================================================================
 
-_print_header "Tealdeer (tldr) Cache"
+printfc "$BLUE" "\nTealdeer (tldr) Cache\n"
 
 if command -v tldr &>/dev/null; then
     if tldr --update; then
-        ok "tldr cache updated."
+        printfc "$GREEN" "tldr cache updated.\n"
     else
-        err "tldr cache update failed."
+        printfc "$RED" "tldr cache update failed.\n"
     fi
 else
-    warn "tldr binary missing. Skipped cache update."
+    printfc "$YELLOW" "tldr binary missing. Skipped cache update.\n"
 fi
 
 # ==============================================================================
 # 4. SERVICE & BOOT SETUP
 # ==============================================================================
 
-_print_header "Services & Boot Setup"
+printfc "$BLUE" "\nServices & Boot Setup\n"
 
 mkdir -p "$HOME/.termux/boot"
 
@@ -148,9 +150,9 @@ if [ ! -f "$BOOT_SERVICES" ]; then
 source /data/data/com.termux/files/usr/etc/profile.d/start-services.sh
 EOF
     chmod +x "$BOOT_SERVICES"
-    ok "Boot script created: 10-services.sh"
+    printfc "$GREEN" "Boot script created: 10-services.sh\n"
 else
-    ok "Boot script exists."
+    printfc "$GREEN" "Boot script exists.\n"
 fi
 
 if command -v sv-enable &>/dev/null; then
@@ -163,19 +165,19 @@ if command -v sv-enable &>/dev/null; then
         sleep 1
     done
     if [ "$ssh_up" -eq 1 ]; then
-        ok "SSH enabled."
+        printfc "$GREEN" "SSH enabled.\n"
     else
-        err "SSH did not come up after enabling. Check 'sv status sshd' manually."
+        printfc "$RED" "SSH did not come up after enabling. Check 'sv status sshd' manually.\n"
     fi
 else
-    warn "termux-services missing. Skipped SSH."
+    printfc "$YELLOW" "termux-services missing. Skipped SSH.\n"
 fi
 
 # ==============================================================================
 # 5. GLOBAL SCRIPTS
 # ==============================================================================
 
-_print_header "Mapping Global Scripts"
+printfc "$BLUE" "\nMapping Global Scripts\n"
 
 for dir in "$CONFIG_PATH"/scripts/*/; do
     name="$(basename "$dir")"
@@ -184,9 +186,9 @@ for dir in "$CONFIG_PATH"/scripts/*/; do
         chmod +x "$main_script"
         rm -f "$PREFIX/bin/$name"
         ln -s "$main_script" "$PREFIX/bin/$name"
-        ok "Mapped $name."
+        printfc "$GREEN" "Mapped %s.\n" "$name"
     else
-        warn "Missing: $name.sh"
+        printfc "$YELLOW" "Missing: %s.sh\n" "$name"
     fi
 done
 
@@ -194,12 +196,12 @@ done
 # 6. SECURITY CHECK
 # ==============================================================================
 
-_print_header "Password Configuration"
+printfc "$BLUE" "\nPassword Configuration\n"
 
 if [ -f "$HOME/.termux_authinfo" ]; then
-    ok "Password set."
+    printfc "$GREEN" "Password set.\n"
 else
-    warn "Set a password:"
+    printfc "$YELLOW" "Set a password:\n"
     passwd
 fi
 
@@ -207,22 +209,22 @@ fi
 # 7. WALLPAPER
 # ==============================================================================
 
-_print_header "Applying Wallpaper"
+printfc "$BLUE" "\nApplying Wallpaper\n"
 
 WALLPAPER="$CONFIG_PATH/data/wallpaper/wallpaper.png"
 if [ -f "$WALLPAPER" ]; then
     termux-wallpaper -f "$WALLPAPER"
     termux-wallpaper -f "$WALLPAPER" -l
-    ok "Wallpaper applied."
+    printfc "$GREEN" "Wallpaper applied.\n"
 else
-    warn "Missing: wallpaper.png"
+    printfc "$YELLOW" "Missing: wallpaper.png\n"
 fi
 
 # ==============================================================================
 # 8. FONT
 # ==============================================================================
 
-_print_header "Downloading Nerd Font"
+printfc "$BLUE" "\nDownloading Nerd Font\n"
 
 FONT_DIR="$HOME/.config/termux-config-files/fonts"
 FONT_FILE="$FONT_DIR/MartianMonoNerdFontMono-Regular.ttf"
@@ -232,37 +234,37 @@ FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Marti
 mkdir -p "$FONT_DIR"
 
 if [ ! -f "$FONT_FILE" ]; then
-    warn "Downloading Nerd Font..."
+    printfc "$YELLOW" "Downloading Nerd Font...\n"
     FONT_TMP=$(mktemp -d)
     if curl -fsSL "$FONT_URL" -o "$FONT_TMP/MartianMono.tar.xz"; then
         tar -xf "$FONT_TMP/MartianMono.tar.xz" -C "$FONT_TMP"
         EXTRACTED=$(find "$FONT_TMP" -name "MartianMonoNerdFontMono-Regular.ttf" | head -n1)
         if [ -n "$EXTRACTED" ]; then
             cp "$EXTRACTED" "$FONT_FILE"
-            ok "Font cached."
+            printfc "$GREEN" "Font cached.\n"
         else
-            err "Font asset not found."
+            printfc "$RED" "Font asset not found.\n"
             rm -rf "$FONT_TMP"
             exit 1
         fi
     else
-        err "Download failed. Check internet."
+        printfc "$RED" "Download failed. Check internet.\n"
         rm -rf "$FONT_TMP"
         exit 1
     fi
     rm -rf "$FONT_TMP"
 else
-    ok "Font already cached."
+    printfc "$GREEN" "Font already cached.\n"
 fi
 
 rm -f "$FONT_DEST"
 ln -s "$FONT_FILE" "$FONT_DEST"
-ok "Font linked."
+printfc "$GREEN" "Font linked.\n"
 
 # ==============================================================================
 # DONE
 # ==============================================================================
 
 echo ""
-ok "Setup complete! Run exit and relaunch Termux."
+printfc "$GREEN" "Setup complete! Run exit and relaunch Termux.\n"
 echo ""
