@@ -1,5 +1,5 @@
 # ==============================================================================
-# yearwall-helper.sh — shared by scripts/yearwall/yearwall.sh and reset.sh
+# yearwall-helper.sh — shared by tools/yearwall.sh and reset.sh
 # ==============================================================================
 
 # Removes the generated wallpaper/update script, restores the default

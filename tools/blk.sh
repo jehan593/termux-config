@@ -3,8 +3,8 @@
 # BLK: Minimalist App Blocker for Termux
 # ==============================================================================
 source "$TERMUX_CONFIG_PATH/helpers/colors-nord.sh"
-source "$TERMUX_CONFIG_PATH/helpers/print.sh"
-source "$TERMUX_CONFIG_PATH/helpers/dependencies.sh"
+source "$TERMUX_CONFIG_PATH/helpers/printer.sh"
+source "$TERMUX_CONFIG_PATH/helpers/dep-checker.sh"
 _test_dependencies "fzf" "am" "cmd" || exit 1
 
 CONFIG_DIR="$HOME/.config/termux-config-files/blk"

@@ -3,9 +3,9 @@
 # YEARWALL MANAGER
 # ==============================================================================
 source "$TERMUX_CONFIG_PATH/helpers/colors-nord.sh"
-source "$TERMUX_CONFIG_PATH/helpers/print.sh"
-source "$TERMUX_CONFIG_PATH/helpers/dependencies.sh"
-source "$TERMUX_CONFIG_PATH/scripts/yearwall/yearwall-helper.sh"
+source "$TERMUX_CONFIG_PATH/helpers/printer.sh"
+source "$TERMUX_CONFIG_PATH/helpers/dep-checker.sh"
+source "$TERMUX_CONFIG_PATH/helpers/yearwall-helper.sh"
 
 _test_dependencies "magick" "termux-wallpaper" || exit 1
 

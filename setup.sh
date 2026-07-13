@@ -7,8 +7,8 @@
 CONFIG_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source "$CONFIG_PATH/helpers/colors-standard.sh"
-source "$CONFIG_PATH/helpers/print.sh"
-source "$CONFIG_PATH/helpers/packages.sh"
+source "$CONFIG_PATH/helpers/printer.sh"
+source "$CONFIG_PATH/helpers/pkg-list.sh"
 
 # ==============================================================================
 # START
@@ -181,9 +181,8 @@ fi
 
 printfc "$BLUE" "\n>Mapping Global Scripts\n"
 
-for dir in "$CONFIG_PATH"/scripts/*/; do
-    name="$(basename "$dir")"
-    main_script="$dir$name.sh"
+for main_script in "$CONFIG_PATH"/tools/*.sh; do
+    name="$(basename "$main_script" .sh)"
     if [ -f "$main_script" ]; then
         chmod +x "$main_script"
         rm -f "$PREFIX/bin/$name"

@@ -2,8 +2,8 @@
 # TERMINAL CONFIGURATION (Nord Aesthetic)
 # ==============================================================================
 source "$TERMUX_CONFIG_PATH/helpers/colors-nord.sh"
-source "$TERMUX_CONFIG_PATH/helpers/print.sh"
-source "$TERMUX_CONFIG_PATH/helpers/dependencies.sh"
+source "$TERMUX_CONFIG_PATH/helpers/printer.sh"
+source "$TERMUX_CONFIG_PATH/helpers/dep-checker.sh"
 
 if ! _test_dependencies "starship" "zoxide" "nvim" "fzf" "fd" "trash-put" "trash-empty" "termux-open-url"; then
     printfc "$NORD_RED" "Skipping shell configuration. Run setup.sh to install missing dependencies."

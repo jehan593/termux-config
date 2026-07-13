@@ -3,9 +3,9 @@
 # WIREPROXY MANAGER
 # ==============================================================================
 source "$TERMUX_CONFIG_PATH/helpers/colors-nord.sh"
-source "$TERMUX_CONFIG_PATH/helpers/print.sh"
-source "$TERMUX_CONFIG_PATH/helpers/dependencies.sh"
-source "$TERMUX_CONFIG_PATH/scripts/wpm/wpm-helper.sh"
+source "$TERMUX_CONFIG_PATH/helpers/printer.sh"
+source "$TERMUX_CONFIG_PATH/helpers/dep-checker.sh"
+source "$TERMUX_CONFIG_PATH/helpers/wpm-helper.sh"
 
 _test_dependencies "wireproxy" "sv" "sv-enable" "fzf" || exit 1
 

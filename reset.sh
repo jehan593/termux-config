@@ -6,10 +6,10 @@
 CONFIG_PATH="$TERMUX_CONFIG_PATH"
 
 source "$CONFIG_PATH/helpers/colors-standard.sh"
-source "$CONFIG_PATH/helpers/print.sh"
-source "$CONFIG_PATH/helpers/packages.sh"
-source "$CONFIG_PATH/scripts/wpm/wpm-helper.sh"
-source "$CONFIG_PATH/scripts/yearwall/yearwall-helper.sh"
+source "$CONFIG_PATH/helpers/printer.sh"
+source "$CONFIG_PATH/helpers/pkg-list.sh"
+source "$CONFIG_PATH/helpers/wpm-helper.sh"
+source "$CONFIG_PATH/helpers/yearwall-helper.sh"
 
 SERVICE_BASE_DIR="$PREFIX/var/service"
 WPM_CONFIG_DIR="$HOME/.config/termux-config-files/wpm"
@@ -60,8 +60,8 @@ mkdir -p "$HOME/.termux"
 # ==============================================================================
 # 2. BOOT SCRIPTS & BINARIES
 # ==============================================================================
-for dir in "$CONFIG_PATH"/scripts/*/; do
-    name="$(basename "$dir")"
+for main_script in "$CONFIG_PATH"/tools/*.sh; do
+    name="$(basename "$main_script" .sh)"
     if [ -L "$PREFIX/bin/$name" ]; then
         rm -f "$PREFIX/bin/$name"
         printfc "$GREEN" "Removed: %s" "$name"

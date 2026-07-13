@@ -1,5 +1,5 @@
 # ==============================================================================
-# wpm-helper.sh — shared by scripts/wpm/wpm.sh and reset.sh
+# wpm-helper.sh — shared by tools/wpm.sh and reset.sh
 # ==============================================================================
 
 # Backs up a tunnel's config and tears down its service.
