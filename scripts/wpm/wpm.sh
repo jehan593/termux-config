@@ -75,7 +75,7 @@ list_proxies() {
         return 0
     }
 
-    printfc "$NORD_POLAR_4" "\n%-25s %-10s %-8s %-6s" "SERVICE" "STATUS" "PORT" "TEST"
+    printfc "$NORD_SNOW_1" "\n%-25s %-10s %-8s %-6s" "SERVICE" "STATUS" "PORT" "TEST"
     printfc "$NORD_POLAR_4" "─────────────────────────────────────────────────"
 
     for s in "${services[@]}"; do

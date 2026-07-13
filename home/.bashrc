@@ -26,6 +26,15 @@ eval "$(zoxide init bash)"
 
 # --- System Functions ---
 
+_termux_age_days() {
+    local install_epoch=$(stat -c %Y "$PREFIX")
+    echo $(( ($(date +%s) - install_epoch) / 86400 ))
+}
+
+usage() {
+    printfc "$NORD_SNOW_1" "%s day(s)" "$(_termux_age_days)"
+}
+
 sys() {
     # 1. Data Gathering
     local pkg_count=$(dpkg --get-selections 2>/dev/null | wc -l)
@@ -34,7 +43,6 @@ sys() {
     local mem=$(free -h | awk '/^Mem:/ {print $3 " / " $2}')
     local uptime_str=$(uptime -p | sed 's/up //')
     local storage=$(df -h /data 2>/dev/null | awk 'NR==2{print $3 " / " $2 " (" $5 " used)"}')
-    local cpu_load=$(uptime | awk -F'load average: ' '{split($2,a,","); gsub(/ /,"",a[1]); print a[1]}')
 
     # 2. Battery Logic
     local batt_raw=$(timeout 2 termux-battery-status 2>/dev/null)
@@ -47,13 +55,7 @@ sys() {
     if [[ -z "$batt_pct" ]]; then
         local batt_status="N/A"
     else
-        if   [[ "$batt_pct" -ge 90 ]]; then local batt_icon="󰁹"
-        elif [[ "$batt_pct" -ge 70 ]]; then local batt_icon="󰂀"
-        elif [[ "$batt_pct" -ge 50 ]]; then local batt_icon="󰁾"
-        elif [[ "$batt_pct" -ge 20 ]]; then local batt_icon="󰁼"
-        else local batt_icon="󰁺"; fi
-        [[ "$batt_state" == "CHARGING" ]] && batt_icon="󰂄"
-        local batt_status="${batt_icon} ${batt_pct}% (${batt_state,,})"
+        local batt_status="${batt_pct}% (${batt_state,,})"
     fi
 
     # 3. Network Logic
@@ -65,10 +67,10 @@ sys() {
     printfc "$NORD_SNOW_1" "%s  %-12s %s" ""  "User"       "$cuser"
     printfc "$NORD_SNOW_1" "%s  %-12s %s" "󱑎" "Uptime"     "$uptime_str"
     printfc "$NORD_SNOW_1" "%s  %-12s %s" "󰟾" "Kernel"     "$ker"
-    printfc "$NORD_SNOW_1" "%s  %-12s %s" "󰻠" "CPU Load"   "$cpu_load"
     printfc "$NORD_SNOW_1" "%s  %-12s %s" "󰍛" "Memory"     "$mem"
     printfc "$NORD_SNOW_1" "%s  %-12s %s" "󰋊" "Storage"    "$storage"
     printfc "$NORD_SNOW_1" "%s  %-12s %s" "󰏖" "Packages"   "$pkg_count"
+    printfc "$NORD_SNOW_1" "%s  %-12s %s" "󰃭" "Age"        "$(_termux_age_days) day(s)"
     printfc "$NORD_SNOW_1" "%s  %-12s %s" "󱊟" "Battery"    "$batt_status"
     printfc "$NORD_SNOW_1" "%s  %-12s %s" ""  "Shell"      "Bash ${BASH_VERSION%%(*}"
 
@@ -296,7 +298,7 @@ bind -x '"\C-h": _fhist'
 wa() {
     if [[ -z "$1" ]]; then
         printfc "$NORD_YELLOW" "Usage: wa <phone_number>"
-        printfc "$NORD_POLAR_4" "Example: wa 0771234567"
+        printfc "$NORD_SNOW_1" "Example: wa 0771234567"
         return 1
     fi
 
