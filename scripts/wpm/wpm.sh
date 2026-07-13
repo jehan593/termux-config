@@ -66,7 +66,7 @@ _select_tunnels_fzf() {
 # --- Actions ---
 
 list_proxies() {
-    printfc "$NORD_BLUE" "\nActive Tunnels\n"
+    printfc "$NORD_BLUE" "\n>Active Tunnels\n"
 
     local -a services=("$SERVICE_BASE_DIR"/*-wpm)
     [[ -d "${services[0]}" ]] || {
@@ -75,7 +75,7 @@ list_proxies() {
         return 0
     }
 
-    printfc "$NORD_D_BLUE" "%-25s %-10s %-8s %-6s\n" "SERVICE" "STATUS" "PORT" "TEST"
+    printfc "$NORD_BLUE" "%-25s %-10s %-8s %-6s\n" "SERVICE" "STATUS" "PORT" "TEST"
     printfc "$NORD_POLAR_4" "─────────────────────────────────────────────────\n"
 
     for s in "${services[@]}"; do
@@ -151,7 +151,7 @@ add_proxy() {
         done
     fi
 
-    printfc "$NORD_BLUE" "\nInstalling Tunnel: %s\n" "$custom_name"
+    printfc "$NORD_BLUE" "\n>Installing Tunnel: %s\n" "$custom_name"
 
     mkdir -p "$CONFIG_DIR"
 
@@ -208,7 +208,7 @@ RUNEOF
 }
 
 start_proxy() {
-    printfc "$NORD_BLUE" "\nStart Tunnels\n"
+    printfc "$NORD_BLUE" "\n>Start Tunnels\n"
     local selections
     selections=$(_select_tunnels_fzf "Select tunnel(s) to start: ") || return 0
 
@@ -223,7 +223,7 @@ start_proxy() {
 }
 
 stop_proxy() {
-    printfc "$NORD_BLUE" "\nStop Tunnels\n"
+    printfc "$NORD_BLUE" "\n>Stop Tunnels\n"
     local selections
     selections=$(_select_tunnels_fzf "Select tunnel(s) to stop: ") || return 0
 
@@ -238,7 +238,7 @@ stop_proxy() {
 }
 
 restart_proxy() {
-    printfc "$NORD_BLUE" "\nRestart Tunnels\n"
+    printfc "$NORD_BLUE" "\n>Restart Tunnels\n"
     local selections
     selections=$(_select_tunnels_fzf "Select tunnel(s) to restart: ") || return 0
 
@@ -253,7 +253,7 @@ restart_proxy() {
 }
 
 remove_proxy() {
-    printfc "$NORD_BLUE" "\nUninstall Tunnels\n"
+    printfc "$NORD_BLUE" "\n>Uninstall Tunnels\n"
     local selections
     selections=$(_select_tunnels_fzf "Select tunnel(s) to remove: ") || return 0
 
@@ -274,7 +274,7 @@ remove_proxy() {
 }
 
 refresh_proxies() {
-    printfc "$NORD_BLUE" "\nRestarting All Tunnels\n"
+    printfc "$NORD_BLUE" "\n>Restarting All Tunnels\n"
 
     local -a services=("$SERVICE_BASE_DIR"/*-wpm)
     [[ -d "${services[0]}" ]] || {
@@ -310,7 +310,7 @@ case "$1" in
     ls)      list_proxies ;;
     refresh) refresh_proxies ;;
     *)
-        printfc "$NORD_BLUE" "\nWireproxy Manager(wpm)\n"
+        printfc "$NORD_BLUE" "\n>Wireproxy Manager(wpm)\n"
         printfc "$NORD_SNOW_1" "add <name> <conf> <port>     Add a proxy\n"
         printfc "$NORD_SNOW_1" "rm                           Remove a proxy\n"
         printfc "$NORD_SNOW_1" "start                        Start target proxy service(s)\n"

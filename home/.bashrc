@@ -61,8 +61,6 @@ sys() {
     [[ -z "$ip_addr" ]] && ip_addr="-"
 
     # 4. Formatting and Output
-    printfc "$NORD_BLUE" "\nTermux Android\n"
-
     printfc "$NORD_SNOW_1" "%s  %-12s %s\n" "󰩟" "Local IP"   "$ip_addr"
     printfc "$NORD_SNOW_1" "%s  %-12s %s\n" ""  "User"       "$cuser"
     printfc "$NORD_SNOW_1" "%s  %-12s %s\n" "󱑎" "Uptime"     "$uptime_str"
@@ -78,7 +76,7 @@ sys() {
 }
 
 cup() {
-    printfc "$NORD_BLUE" "\nChecking Updates\n"
+    printfc "$NORD_BLUE" "\n>Checking Updates\n"
 
     pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1
     local upgradable=$(apt list --upgradable 2>/dev/null | grep '\[upgradable')
@@ -95,7 +93,7 @@ cup() {
 }
 
 upp() {
-    printfc "$NORD_BLUE" "\nUpgrading Packages\n"
+    printfc "$NORD_BLUE" "\n>Upgrading Packages\n"
     if pkg upgrade -y; then
         printfc "$NORD_GREEN" "Upgrade complete.\n"
     else
@@ -110,7 +108,7 @@ upall() {
 }
 
 upc() {
-    printfc "$NORD_BLUE" "\nSyncing Dotfiles\n"
+    printfc "$NORD_BLUE" "\n>Syncing Dotfiles\n"
     if git -C "$TERMUX_CONFIG_PATH" pull --rebase --autostash; then
         printfc "$NORD_GREEN" "Sync complete.\n"
         printfc "$NORD_YELLOW" "Run 'reload' to apply updated configuration.\n"
@@ -138,7 +136,7 @@ inst() {
     echo "$selected" | sed 's/ /\n/g; s/^/+ /'
     echo ""
 
-    printfc "$NORD_BLUE" "\nInstalling Packages\n"
+    printfc "$NORD_BLUE" "\n>Installing Packages\n"
     history -s "pkg install -y $selected"
     if pkg install -y $selected; then
         printfc "$NORD_GREEN" "Installed successfully.\n"
@@ -164,7 +162,7 @@ uinst() {
     echo "$selected" | sed 's/ /\n/g; s/^/- /'
     echo ""
 
-    printfc "$NORD_BLUE" "\nUninstalling Packages\n"
+    printfc "$NORD_BLUE" "\n>Uninstalling Packages\n"
     history -s "pkg uninstall -y $selected"
     if pkg uninstall -y $selected; then
         printfc "$NORD_GREEN" "Uninstall complete.\n"
@@ -175,7 +173,7 @@ uinst() {
 }
 
 cleanup() {
-    printfc "$NORD_BLUE" "\nSystem Cleanup\n"
+    printfc "$NORD_BLUE" "\n>System Cleanup\n"
     pkg clean
     if apt autoremove -y; then
         printfc "$NORD_GREEN" "Cleanup complete.\n"

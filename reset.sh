@@ -18,7 +18,9 @@ WPM_CONFIG_DIR="$HOME/.config/termux-config-files/wpm"
 # START
 # ==============================================================================
 
-printfc "$CYAN" "\nTermux Reset\n"
+printfc "$CYAN" "\n┌────────────────┐\n"
+printfc "$CYAN" "│  Termux Reset  │\n"
+printfc "$CYAN" "└────────────────┘\n"
 printfc "$YELLOW" "This will undo setup changes.\n"
 printfc "$YELLOW" "Proceed with reset? [y/N]: "
 read -r confirm
@@ -28,7 +30,7 @@ read -r confirm
 # 1. REMOVE SYMLINKS
 # ==============================================================================
 
-printfc "$BLUE" "\nRemoving Symlinks\n"
+printfc "$BLUE" "\n>Removing Symlinks\n"
 
 while IFS= read -r -d '' src; do
     rel="${src#"$CONFIG_PATH/home/"}"
@@ -72,7 +74,7 @@ done
 # 2c. PURGE GLOBAL CONFIG PATH SYSTEM ENVIRONMENT
 # ==============================================================================
 
-printfc "$BLUE" "\nSystem Config Environment Purge\n"
+printfc "$BLUE" "\n>System Config Environment Purge\n"
 
 CONFIG_ENV_FILE="$PREFIX/etc/profile.d/termux_config.sh"
 
@@ -90,7 +92,7 @@ fi
 # 3. WPM BACKUP AND REMOVAL
 # ==============================================================================
 
-printfc "$BLUE" "\nWireproxy Manager(wpm) Removal\n"
+printfc "$BLUE" "\n>Wireproxy Manager(wpm) Removal\n"
 
 declare -a services=("$SERVICE_BASE_DIR"/*-wpm)
 if [[ ! -d "${services[0]}" ]]; then
@@ -119,7 +121,7 @@ fi
 # 4. YEARWALL REMOVAL
 # ==============================================================================
 
-printfc "$BLUE" "\nLock Screen Year Progress Wallpaper Setup(yearwall) Removal\n"
+printfc "$BLUE" "\n>Lock Screen Year Progress Wallpaper Setup(yearwall) Removal\n"
 
 YEARWALL_DIR="$HOME/.config/termux-config-files/yearwall"
 YEARWALL_BOOT_SCRIPT="$HOME/.termux/boot/50-yearwall.sh"
@@ -155,7 +157,7 @@ fi
 # 4b. FONT CACHE CLEANUP
 # ==============================================================================
 
-printfc "$BLUE" "\nNerd Font Cache Cleanup\n"
+printfc "$BLUE" "\n>Nerd Font Cache Cleanup\n"
 
 FONT_DIR="$HOME/.config/termux-config-files/fonts"
 
@@ -174,7 +176,7 @@ fi
 # 4c. TRASH FOLDER (optional)
 # ==============================================================================
 
-printfc "$BLUE" "\nTrash Folder\n"
+printfc "$BLUE" "\n>Trash Folder\n"
 
 TRASH_DIR="$HOME/.trash"
 if [ -d "$TRASH_DIR" ]; then
@@ -194,7 +196,7 @@ fi
 # 5. SERVICES (optional)
 # ==============================================================================
 
-printfc "$BLUE" "\nService Termination\n"
+printfc "$BLUE" "\n>Service Termination\n"
 
 if command -v sv-disable &>/dev/null; then
     printfc "$YELLOW" "Disable SSH service? [y/N]: "
@@ -216,7 +218,7 @@ fi
 # 6. NEOVIM CONFIGURATION
 # ==============================================================================
 
-printfc "$BLUE" "\nNeovim Cleanup\n"
+printfc "$BLUE" "\n>Neovim Cleanup\n"
 if [ -d "$HOME/.config/nvim" ] && [ -z "$(ls -A "$HOME/.config/nvim")" ]; then
     rmdir "$HOME/.config/nvim"
     printfc "$GREEN" "Removed empty nvim directory.\n"
@@ -226,7 +228,7 @@ fi
 # 6b. BLK APP BLOCKER CLEANUP & RESTORATION
 # ==============================================================================
 
-printfc "$BLUE" "\nBLK App Blocker Cleanup\n"
+printfc "$BLUE" "\n>BLK App Blocker Cleanup\n"
 
 BLK_CONFIG_DIR="$HOME/.config/termux-config-files/blk"
 BLOCKED_FILE="$BLK_CONFIG_DIR/blocked_pkgs"

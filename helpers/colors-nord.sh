@@ -3,8 +3,7 @@
 # Termux theme is active.
 # ==============================================================================
 export NORD_CYAN=$'\e[38;2;143;188;187m'
-export NORD_BLUE=$'\e[38;2;136;192;208m'
-export NORD_D_BLUE=$'\e[38;2;129;161;193m'
+export NORD_BLUE=$'\e[38;2;129;161;193m'
 export NORD_GREEN=$'\e[38;2;163;190;140m'
 export NORD_YELLOW=$'\e[38;2;235;203;139m'
 export NORD_RED=$'\e[38;2;191;97;106m'

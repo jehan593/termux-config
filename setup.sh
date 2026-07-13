@@ -14,13 +14,15 @@ source "$CONFIG_PATH/helpers/packages.sh"
 # START
 # ==============================================================================
 
-printfc "$CYAN" "\nTermux Installer\n"
+printfc "$CYAN" "\n┌────────────────────┐\n"
+printfc "$CYAN" "│  Termux Installer  │\n"
+printfc "$CYAN" "└────────────────────┘\n"
 
 # ==============================================================================
 # 0. PREREQUISITES CHECK
 # ==============================================================================
 
-printfc "$BLUE" "\nPrerequisites Check\n"
+printfc "$BLUE" "\n>Prerequisites Check\n"
 
 printfc "$YELLOW" "Ensure all of the following are installed via F-Droid or GitHub Releases (NOT Play Store):\n"
 echo -e "  - Termux, Termux:API, Termux:Boot, and Termux:Styling"
@@ -54,7 +56,7 @@ fi
 # 1. DEPENDENCIES
 # ==============================================================================
 
-printfc "$BLUE" "\nInstalling Dependencies\n"
+printfc "$BLUE" "\n>Installing Dependencies\n"
 
 pkg update -y -o Dpkg::Use-Pty=0
 
@@ -74,7 +76,7 @@ done
 # 2. DOTFILE LINKS
 # ==============================================================================
 
-printfc "$BLUE" "\nLinking Configuration Files\n"
+printfc "$BLUE" "\n>Linking Configuration Files\n"
 
 while IFS= read -r -d '' src; do
     rel="${src#"$CONFIG_PATH/home/"}"
@@ -101,7 +103,7 @@ done < <(find "$CONFIG_PATH/home" -type f -print0)
 # 2b. EXPORT GLOBAL CONFIG PATH SYSTEM-WIDE
 # ==============================================================================
 
-printfc "$BLUE" "\nConfiguring Global Environment Variables\n"
+printfc "$BLUE" "\n>Configuring Global Environment Variables\n"
 
 SYSTEM_PROFILE_DIR="$PREFIX/etc/profile.d"
 CONFIG_ENV_FILE="$SYSTEM_PROFILE_DIR/termux_config.sh"
@@ -123,7 +125,7 @@ source "$CONFIG_ENV_FILE"
 # 3. TEALDEER
 # ==============================================================================
 
-printfc "$BLUE" "\nTealdeer (tldr) Cache\n"
+printfc "$BLUE" "\n>Tealdeer (tldr) Cache\n"
 
 if command -v tldr &>/dev/null; then
     if tldr --update; then
@@ -139,7 +141,7 @@ fi
 # 4. SERVICE & BOOT SETUP
 # ==============================================================================
 
-printfc "$BLUE" "\nServices & Boot Setup\n"
+printfc "$BLUE" "\n>Services & Boot Setup\n"
 
 mkdir -p "$HOME/.termux/boot"
 
@@ -177,7 +179,7 @@ fi
 # 5. GLOBAL SCRIPTS
 # ==============================================================================
 
-printfc "$BLUE" "\nMapping Global Scripts\n"
+printfc "$BLUE" "\n>Mapping Global Scripts\n"
 
 for dir in "$CONFIG_PATH"/scripts/*/; do
     name="$(basename "$dir")"
@@ -196,7 +198,7 @@ done
 # 6. SECURITY CHECK
 # ==============================================================================
 
-printfc "$BLUE" "\nPassword Configuration\n"
+printfc "$BLUE" "\n>Password Configuration\n"
 
 if [ -f "$HOME/.termux_authinfo" ]; then
     printfc "$GREEN" "Password set.\n"
@@ -209,7 +211,7 @@ fi
 # 7. WALLPAPER
 # ==============================================================================
 
-printfc "$BLUE" "\nApplying Wallpaper\n"
+printfc "$BLUE" "\n>Applying Wallpaper\n"
 
 WALLPAPER="$CONFIG_PATH/data/wallpaper/wallpaper.png"
 if [ -f "$WALLPAPER" ]; then
@@ -224,7 +226,7 @@ fi
 # 8. FONT
 # ==============================================================================
 
-printfc "$BLUE" "\nDownloading Nerd Font\n"
+printfc "$BLUE" "\n>Downloading Nerd Font\n"
 
 FONT_DIR="$HOME/.config/termux-config-files/fonts"
 FONT_FILE="$FONT_DIR/MartianMonoNerdFontMono-Regular.ttf"

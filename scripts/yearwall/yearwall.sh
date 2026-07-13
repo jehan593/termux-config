@@ -17,7 +17,7 @@ YEARWALL_BOOT_SCRIPT="$BOOT_DIR/50-yearwall.sh"
 # --- Actions ---
 
 check_status() {
-    printfc "$NORD_BLUE" "\nChecking Yearwall Status\n"
+    printfc "$NORD_BLUE" "\n>Checking Yearwall Status\n"
 
     local is_setup=true
 
@@ -61,7 +61,7 @@ check_status() {
 }
 
 setup_yearwall() {
-    printfc "$NORD_BLUE" "\nSetting up Yearwall\n"
+    printfc "$NORD_BLUE" "\n>Setting up Yearwall\n"
 
     # 1. Create generator script
     mkdir -p "$YEARWALL_DIR"
@@ -176,7 +176,7 @@ BOOTEOF
 }
 
 remove_yearwall() {
-    printfc "$NORD_BLUE" "\nRemoving Yearwall Setup\n"
+    printfc "$NORD_BLUE" "\n>Removing Yearwall Setup\n"
 
     local had_boot_script=0
     [ -f "$YEARWALL_BOOT_SCRIPT" ] && had_boot_script=1
@@ -205,7 +205,7 @@ case "$1" in
     rm)     remove_yearwall ;;
     status) check_status ;;
     *)
-        printfc "$NORD_BLUE" "\nLock Screen Year Progress Wallpaper Manager (yearwall)\n"
+        printfc "$NORD_BLUE" "\n>Lock Screen Year Progress Wallpaper Manager (yearwall)\n"
         echo "setup   - setup wallpaper"
         echo "status  - check configuration and automation status"
         echo "rm      - remove wallpaper setup"
