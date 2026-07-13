@@ -31,7 +31,7 @@ _termux_age_days() {
     echo $(( ($(date +%s) - install_epoch) / 86400 ))
 }
 
-usage() {
+tage() {
     printfc "$NORD_SNOW_1" "%s day(s)" "$(_termux_age_days)"
 }
 
