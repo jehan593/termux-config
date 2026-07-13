@@ -5,12 +5,12 @@
 source "$TERMUX_CONFIG_PATH/helpers/colors-nord.sh"
 source "$TERMUX_CONFIG_PATH/helpers/printer.sh"
 source "$TERMUX_CONFIG_PATH/helpers/dep-checker.sh"
+source "$TERMUX_CONFIG_PATH/helpers/blk-helper.sh"
 _test_dependencies "fzf" "am" "cmd" || exit 1
 
 CONFIG_DIR="$HOME/.config/termux-config-files/blk"
 CONFIG_FILE="$CONFIG_DIR/config"
 BLOCKED_FILE="$CONFIG_DIR/blocked_pkgs"
-RECEIVER="com.bintianqi.owndroid/.ApiReceiver"
 
 command mkdir -p "$CONFIG_DIR"
 [ -f "$BLOCKED_FILE" ] || : > "$BLOCKED_FILE"
@@ -47,17 +47,6 @@ set_api_key() {
     echo ""
 }
 
-# --- Intent Sender ---
-send_intent() {
-    local action=$1 package=$2 permission=$3
-    local args=(-a "com.bintianqi.owndroid.action.$action" \
-        -n "$RECEIVER" \
-        --es "key" "$API_KEY" \
-        --es "package" "$package")
-    [ -n "$permission" ] && args+=(--es "permission" "$permission")
-    am broadcast "${args[@]}" > /dev/null 2>&1
-}
-
 CONTACTS_STATE_FILE="$CONFIG_DIR/wa_contacts_state"
 
 # --- WhatsApp Contact Toggle ---
@@ -78,7 +67,7 @@ toggle_whatsapp_contacts() {
 
     if [ "$current_state" = "granted" ]; then
         printfc "$NORD_YELLOW" "Revoking Contacts permission from WhatsApp..."
-        if send_intent "SET_PERMISSION_DENIED" "$wa_pkg" "$perm"; then
+        if _blk_send_intent "$API_KEY" "SET_PERMISSION_DENIED" "$wa_pkg" "$perm"; then
             echo "denied" > "$CONTACTS_STATE_FILE"
             printfc "$NORD_GREEN" "Permission blocked successfully."
         else
@@ -86,7 +75,7 @@ toggle_whatsapp_contacts() {
         fi
     else
         printfc "$NORD_YELLOW" "Granting Contacts permission to WhatsApp..."
-        if send_intent "SET_PERMISSION_GRANTED" "$wa_pkg" "$perm"; then
+        if _blk_send_intent "$API_KEY" "SET_PERMISSION_GRANTED" "$wa_pkg" "$perm"; then
             echo "granted" > "$CONTACTS_STATE_FILE"
             printfc "$NORD_GREEN" "Permission allowed successfully."
         else
@@ -147,7 +136,7 @@ manage_blocks() {
         printfc "$NORD_YELLOW" "Blocking apps..."
         while IFS= read -r pkg; do
             [ -z "$pkg" ] && continue
-            if send_intent "SUSPEND" "$pkg"; then
+            if _blk_send_intent "$API_KEY" "SUSPEND" "$pkg"; then
                 echo "-> $pkg"
                 currently_blocked=$(echo -e "$currently_blocked\n$pkg" | sort -u)
             else
@@ -162,7 +151,7 @@ manage_blocks() {
         printfc "$NORD_GREEN" "Unblocking apps..."
         while IFS= read -r pkg; do
             [ -z "$pkg" ] && continue
-            if send_intent "UNSUSPEND" "$pkg"; then
+            if _blk_send_intent "$API_KEY" "UNSUSPEND" "$pkg"; then
                 echo "-> $pkg"
                 currently_blocked=$(echo "$currently_blocked" | grep -vFx "$pkg")
             else

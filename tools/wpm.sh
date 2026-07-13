@@ -207,47 +207,18 @@ RUNEOF
     echo ""
 }
 
-start_proxy() {
-    printfc "$NORD_BLUE" "\n>Start Tunnels"
+_tunnel_action() {
+    local verb="$1" title="$2" gerund="$3" past="$4"
+    printfc "$NORD_BLUE" "\n>$title Tunnels"
     local selections
-    selections=$(_select_tunnels_fzf "Select tunnel(s) to start: ") || return 0
+    selections=$(_select_tunnels_fzf "Select tunnel(s) to $verb: ") || return 0
 
     echo ""
     while read -r line; do
         [[ -z "$line" ]] && continue
         local s_name=$(echo "$line" | awk '{print $1}')
-        printfc "$NORD_SNOW_1" "Starting: %s" "$s_name"
-        sv start "$s_name" > /dev/null 2>&1 && printfc "$NORD_GREEN" "Started: %s" "$s_name" || printfc "$NORD_RED" "Failed to start: %s" "$s_name"
-    done <<< "$selections"
-    echo ""
-}
-
-stop_proxy() {
-    printfc "$NORD_BLUE" "\n>Stop Tunnels"
-    local selections
-    selections=$(_select_tunnels_fzf "Select tunnel(s) to stop: ") || return 0
-
-    echo ""
-    while read -r line; do
-        [[ -z "$line" ]] && continue
-        local s_name=$(echo "$line" | awk '{print $1}')
-        printfc "$NORD_SNOW_1" "Stopping: %s" "$s_name"
-        sv stop "$s_name" > /dev/null 2>&1 && printfc "$NORD_GREEN" "Stopped: %s" "$s_name" || printfc "$NORD_RED" "Failed to stop: %s" "$s_name"
-    done <<< "$selections"
-    echo ""
-}
-
-restart_proxy() {
-    printfc "$NORD_BLUE" "\n>Restart Tunnels"
-    local selections
-    selections=$(_select_tunnels_fzf "Select tunnel(s) to restart: ") || return 0
-
-    echo ""
-    while read -r line; do
-        [[ -z "$line" ]] && continue
-        local s_name=$(echo "$line" | awk '{print $1}')
-        printfc "$NORD_SNOW_1" "Restarting: %s" "$s_name"
-        sv restart "$s_name" > /dev/null 2>&1 && printfc "$NORD_GREEN" "Restarted: %s" "$s_name" || printfc "$NORD_RED" "Failed to restart: %s" "$s_name"
+        printfc "$NORD_SNOW_1" "$gerund: %s" "$s_name"
+        sv "$verb" "$s_name" && printfc "$NORD_GREEN" "$past: %s" "$s_name" || printfc "$NORD_RED" "Failed to $verb: %s" "$s_name"
     done <<< "$selections"
     echo ""
 }
@@ -295,7 +266,7 @@ refresh_proxies() {
     if [ "$failed" -eq 0 ]; then
         printfc "$NORD_GREEN" "All tunnels restarted."
     else
-        printfc "$NORD_YELLOW" "Failed to restart %s tunnel(s)." "$failed"
+        printfc "$NORD_RED" "Failed to restart %s tunnel(s)." "$failed"
     fi
     echo ""
 }
@@ -304,9 +275,9 @@ refresh_proxies() {
 case "$1" in
     add)     add_proxy "$2" "$3" "$4" ;;
     rm)      remove_proxy ;;
-    start)   start_proxy ;;
-    stop)    stop_proxy ;;
-    restart) restart_proxy ;;
+    start)   _tunnel_action "start" "Start" "Starting" "Started" ;;
+    stop)    _tunnel_action "stop" "Stop" "Stopping" "Stopped" ;;
+    restart) _tunnel_action "restart" "Restart" "Restarting" "Restarted" ;;
     ls)      list_proxies ;;
     refresh) refresh_proxies ;;
     *)

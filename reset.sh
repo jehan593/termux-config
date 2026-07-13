@@ -10,6 +10,7 @@ source "$CONFIG_PATH/helpers/printer.sh"
 source "$CONFIG_PATH/helpers/pkg-list.sh"
 source "$CONFIG_PATH/helpers/wpm-helper.sh"
 source "$CONFIG_PATH/helpers/yearwall-helper.sh"
+source "$CONFIG_PATH/helpers/blk-helper.sh"
 
 SERVICE_BASE_DIR="$PREFIX/var/service"
 WPM_CONFIG_DIR="$HOME/.config/termux-config-files/wpm"
@@ -206,12 +207,33 @@ if command -v sv-disable &>/dev/null; then
             printfc "$GREEN" "SSH disabled."
         else
             printfc "$RED" "Failed to disable SSH service."
+            kept_ssh=1
         fi
     else
         printfc "$YELLOW" "Skipped SSH changes."
+        kept_ssh=1
     fi
 else
     printfc "$YELLOW" "termux-services missing."
+fi
+
+# ==============================================================================
+# 5b. BOOT SERVICES SCRIPT CLEANUP
+# ==============================================================================
+
+printfc "$BLUE" "\n>Boot Services Script Cleanup"
+
+BOOT_SERVICES="$HOME/.termux/boot/10-services.sh"
+
+if [ -f "$BOOT_SERVICES" ]; then
+    if [ "$kept_wpm" = 1 ] || [ "$kept_yearwall" = 1 ] || [ "$kept_ssh" = 1 ]; then
+        printfc "$YELLOW" "Skipped: still needed to start services for kept setup(s) on boot."
+    else
+        rm -f "$BOOT_SERVICES"
+        printfc "$GREEN" "Boot services script removed."
+    fi
+else
+    printfc "$YELLOW" "Boot services script not found."
 fi
 
 # ==============================================================================
@@ -233,7 +255,7 @@ printfc "$BLUE" "\n>BLK App Blocker Cleanup\n"
 BLK_CONFIG_DIR="$HOME/.config/termux-config-files/blk"
 BLOCKED_FILE="$BLK_CONFIG_DIR/blocked_pkgs"
 CONFIG_FILE="$BLK_CONFIG_DIR/config"
-RECEIVER="com.bintianqi.owndroid/.ApiReceiver"
+CONTACTS_STATE_FILE="$BLK_CONFIG_DIR/wa_contacts_state"
 
 if [ -d "$BLK_CONFIG_DIR" ]; then
     # Load API Key if available to allow intent broadcast
@@ -245,20 +267,27 @@ if [ -d "$BLK_CONFIG_DIR" ]; then
         unblock_failed=0
         while IFS= read -r pkg; do
             [ -z "$pkg" ] && continue
-            if am broadcast -a "com.bintianqi.owndroid.action.UNSUSPEND" \
-                -n "$RECEIVER" \
-                --es "key" "$API_KEY" \
-                --es "package" "$pkg" > /dev/null 2>&1; then
+            if _blk_send_intent "$API_KEY" "UNSUSPEND" "$pkg"; then
                 echo "-> $pkg"
             else
-                echo "-> $pkg (broadcast failed)"
+                printfc "$RED" "-> %s (broadcast failed)" "$pkg"
                 unblock_failed=1
             fi
         done < "$BLOCKED_FILE"
         if [ "$unblock_failed" -eq 0 ]; then
             printfc "$GREEN" "All apps unblocked successfully."
         else
-            printfc "$YELLOW" "Some unblock intents failed to dispatch. Check manually before assuming apps are unblocked."
+            printfc "$RED" "Some unblock intents failed to dispatch. Check manually before assuming apps are unblocked."
+        fi
+        echo ""
+    fi
+
+    if [ -f "$CONTACTS_STATE_FILE" ] && [ -n "$API_KEY" ] && [ "$(cat "$CONTACTS_STATE_FILE")" = "denied" ]; then
+        printfc "$YELLOW" "Restoring WhatsApp Contacts permission..."
+        if _blk_send_intent "$API_KEY" "SET_PERMISSION_GRANTED" "com.whatsapp" "android.permission.READ_CONTACTS"; then
+            printfc "$GREEN" "WhatsApp Contacts permission restored."
+        else
+            printfc "$RED" "Failed to restore WhatsApp Contacts permission. Check manually."
         fi
         echo ""
     fi
@@ -299,6 +328,13 @@ for pkg in $SETUP_PKGS; do
         case "$pkg" in
             termux-api|termux-services|imagemagick|cronie)
                 [ -n "$keep" ] && keep="$keep, wallpaper" || keep="wallpaper"
+                ;;
+        esac
+    fi
+    if [ "$kept_ssh" = 1 ]; then
+        case "$pkg" in
+            termux-services|openssh)
+                [ -n "$keep" ] && keep="$keep, ssh" || keep="ssh"
                 ;;
         esac
     fi
