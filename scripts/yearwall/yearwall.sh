@@ -23,39 +23,39 @@ check_status() {
 
     # 1. Check Script & Directories
     if [ -f "$YEARWALL_UPDATE_SCRIPT" ] && [ -x "$YEARWALL_UPDATE_SCRIPT" ]; then
-        printfc "$NORD_GREEN" "Core script: Configured and executable.\n"
+        printfc "$NORD_GREEN" "Core script: Configured and executable."
     else
-        printfc "$NORD_RED" "Core script: Missing or not executable.\n"
+        printfc "$NORD_RED" "Core script: Missing or not executable."
         is_setup=false
     fi
 
     # 2. Check Crontab Automation
     if command -v crontab &>/dev/null; then
         if crontab -l 2>/dev/null | grep -q "yearwall_update.sh"; then
-            printfc "$NORD_GREEN" "Automation: Cron job active.\n"
+            printfc "$NORD_GREEN" "Automation: Cron job active."
         else
-            printfc "$NORD_YELLOW" "Automation: No cron job found.\n"
+            printfc "$NORD_YELLOW" "Automation: No cron job found."
             is_setup=false
         fi
     else
-        printfc "$NORD_YELLOW" "Automation: crontab is not installed.\n"
+        printfc "$NORD_YELLOW" "Automation: crontab is not installed."
         is_setup=false
     fi
 
     # 3. Check Boot Persistence
     if [ -f "$YEARWALL_BOOT_SCRIPT" ] && [ -x "$YEARWALL_BOOT_SCRIPT" ]; then
-        printfc "$NORD_GREEN" "Persistence: Boot script active.\n"
+        printfc "$NORD_GREEN" "Persistence: Boot script active."
     else
-        printfc "$NORD_YELLOW" "Persistence: Boot script missing or not executable.\n"
+        printfc "$NORD_YELLOW" "Persistence: Boot script missing or not executable."
         is_setup=false
     fi
 
     # 4. Summary Conclusion
     echo ""
     if [ "$is_setup" = true ]; then
-        printfc "$NORD_GREEN" "Conclusion: Yearwall is fully installed and active.\n"
+        printfc "$NORD_GREEN" "Conclusion: Yearwall is fully installed and active."
     else
-        printfc "$NORD_YELLOW" "Conclusion: Yearwall is incomplete or not installed.\n"
+        printfc "$NORD_YELLOW" "Conclusion: Yearwall is incomplete or not installed."
     fi
     echo ""
 }
@@ -141,18 +141,18 @@ magick -size 1080x2400 xc:"rgb(46,52,64)" \
 termux-wallpaper -f "$OUTPUT" -l
 EOF
     chmod +x "$YEARWALL_UPDATE_SCRIPT"
-    printfc "$NORD_GREEN" "Script saved.\n"
+    printfc "$NORD_GREEN" "Script saved."
 
     # 2. Cron Configuration
     if command -v crontab &>/dev/null; then
         if sv-enable crond > /dev/null 2>&1 && \
            (crontab -l 2>/dev/null | grep -v "yearwall_update.sh"; echo "0 0 * * * $YEARWALL_UPDATE_SCRIPT") | crontab -; then
-            printfc "$NORD_GREEN" "Scheduled in crontab.\n"
+            printfc "$NORD_GREEN" "Scheduled in crontab."
         else
-            printfc "$NORD_RED" "Failed to enable cron service or schedule crontab entry.\n"
+            printfc "$NORD_RED" "Failed to enable cron service or schedule crontab entry."
         fi
     else
-        printfc "$NORD_YELLOW" "crontab missing. Skipping automation schedule.\n"
+        printfc "$NORD_YELLOW" "crontab missing. Skipping automation schedule."
     fi
 
     # 3. Boot persistence
@@ -163,14 +163,14 @@ EOF
 sleep 10 && $YEARWALL_UPDATE_SCRIPT &
 BOOTEOF
     chmod +x "$YEARWALL_BOOT_SCRIPT"
-    printfc "$NORD_GREEN" "Boot persistence enabled.\n"
+    printfc "$NORD_GREEN" "Boot persistence enabled."
 
     # 4. Run now
     echo ""
     if "$YEARWALL_UPDATE_SCRIPT"; then
-        printfc "$NORD_GREEN" "Installed successfully.\n"
+        printfc "$NORD_GREEN" "Installed successfully."
     else
-        printfc "$NORD_RED" "Failed to apply wallpaper.\n"
+        printfc "$NORD_RED" "Failed to apply wallpaper."
     fi
     echo ""
 }
@@ -183,19 +183,19 @@ remove_yearwall() {
 
     _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$TERMUX_CONFIG_PATH/data/wallpaper/wallpaper.png"
 
-    printfc "$NORD_GREEN" "Files removed.\n"
-    printfc "$NORD_GREEN" "Wallpaper restored to default.\n"
+    printfc "$NORD_GREEN" "Files removed."
+    printfc "$NORD_GREEN" "Wallpaper restored to default."
 
-    command -v crontab &>/dev/null && printfc "$NORD_GREEN" "Crontab cleared.\n"
+    command -v crontab &>/dev/null && printfc "$NORD_GREEN" "Crontab cleared."
 
     if [ "$had_boot_script" -eq 1 ]; then
-        printfc "$NORD_GREEN" "Boot script removed.\n"
+        printfc "$NORD_GREEN" "Boot script removed."
     else
-        printfc "$NORD_YELLOW" "Boot script already removed.\n"
+        printfc "$NORD_YELLOW" "Boot script already removed."
     fi
 
     echo ""
-    printfc "$NORD_GREEN" "Remove complete.\n"
+    printfc "$NORD_GREEN" "Remove complete."
     echo ""
 }
 

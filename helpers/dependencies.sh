@@ -4,7 +4,7 @@
 
 _test_dependencies() {
     if [ $# -eq 0 ]; then
-        printfc "$NORD_RED" "Error: No commands specified to test.\n"
+        printfc "$NORD_RED" "Error: No commands specified to test."
         return 1
     fi
 
@@ -15,7 +15,7 @@ _test_dependencies() {
 
     if [ ${#missing[@]} -gt 0 ]; then
         for app in "${missing[@]}"; do
-            printfc "$NORD_RED" "Missing dependency: %s\n" "$app"
+            printfc "$NORD_RED" "Missing dependency: %s" "$app"
         done
         return 1
     fi

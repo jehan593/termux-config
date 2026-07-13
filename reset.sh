@@ -18,11 +18,11 @@ WPM_CONFIG_DIR="$HOME/.config/termux-config-files/wpm"
 # START
 # ==============================================================================
 
-printfc "$CYAN" "\n┌────────────────┐\n"
-printfc "$CYAN" "│  Termux Reset  │\n"
-printfc "$CYAN" "└────────────────┘\n"
-printfc "$YELLOW" "This will undo setup changes.\n"
-printfc "$YELLOW" "Proceed with reset? [y/N]: "
+printfc "$CYAN" "\n┌────────────────┐"
+printfc "$CYAN" "│  Termux Reset  │"
+printfc "$CYAN" "└────────────────┘"
+printfc "$YELLOW" "This will undo setup changes."
+printfc -n "$YELLOW" "Proceed with reset? [y/N]: "
 read -r confirm
 [[ "$confirm" =~ ^[Yy]$ ]] || { echo -e "\nAborted.\n"; exit 0; }
 
@@ -37,22 +37,22 @@ while IFS= read -r -d '' src; do
     link="$HOME/$rel"
     if [ -L "$link" ]; then
         rm -f "$link"
-        printfc "$GREEN" "Removed: %s\n" "$link"
+        printfc "$GREEN" "Removed: %s" "$link"
     else
-        printfc "$YELLOW" "Skipped: %s\n" "$link"
+        printfc "$YELLOW" "Skipped: %s" "$link"
     fi
 
     if [ -e "$link.bak" ] || [ -L "$link.bak" ]; then
         mv -f "$link.bak" "$link"
-        printfc "$GREEN" "Restored backup: %s\n" "$rel"
+        printfc "$GREEN" "Restored backup: %s" "$rel"
     fi
 done < <(find "$CONFIG_PATH/home" -type f -print0)
 
 if [ -L "$HOME/.termux/font.ttf" ]; then
     rm -f "$HOME/.termux/font.ttf"
-    printfc "$GREEN" "Font link removed.\n"
+    printfc "$GREEN" "Font link removed."
 else
-    printfc "$YELLOW" "Font link missing.\n"
+    printfc "$YELLOW" "Font link missing."
 fi
 
 mkdir -p "$HOME/.termux"
@@ -64,9 +64,9 @@ for dir in "$CONFIG_PATH"/scripts/*/; do
     name="$(basename "$dir")"
     if [ -L "$PREFIX/bin/$name" ]; then
         rm -f "$PREFIX/bin/$name"
-        printfc "$GREEN" "Removed: %s\n" "$name"
+        printfc "$GREEN" "Removed: %s" "$name"
     else
-        printfc "$YELLOW" "Missing: %s\n" "$name"
+        printfc "$YELLOW" "Missing: %s" "$name"
     fi
 done
 
@@ -74,18 +74,18 @@ done
 # 2c. PURGE GLOBAL CONFIG PATH SYSTEM ENVIRONMENT
 # ==============================================================================
 
-printfc "$BLUE" "\n>System Config Environment Purge\n"
+printfc "$BLUE" "\n>System Config Environment Purge"
 
 CONFIG_ENV_FILE="$PREFIX/etc/profile.d/termux_config.sh"
 
 if [ -f "$CONFIG_ENV_FILE" ]; then
     rm -f "$CONFIG_ENV_FILE"
-    printfc "$GREEN" "Removed system profile drop-in: %s\n" "$CONFIG_ENV_FILE"
+    printfc "$GREEN" "Removed system profile drop-in: %s" "$CONFIG_ENV_FILE"
 
     unset TERMUX_CONFIG_PATH
-    printfc "$GREEN" "Unset TERMUX_CONFIG_PATH from current terminal layer.\n"
+    printfc "$GREEN" "Unset TERMUX_CONFIG_PATH from current terminal layer."
 else
-    printfc "$YELLOW" "No system-wide configuration path profile found.\n"
+    printfc "$YELLOW" "No system-wide configuration path profile found."
 fi
 
 # ==============================================================================
@@ -96,9 +96,9 @@ printfc "$BLUE" "\n>Wireproxy Manager(wpm) Removal\n"
 
 declare -a services=("$SERVICE_BASE_DIR"/*-wpm)
 if [[ ! -d "${services[0]}" ]]; then
-    printfc "$YELLOW" "No tunnels found.\n"
+    printfc "$YELLOW" "No tunnels found."
 else
-    printfc "$YELLOW" "Remove all tunnels and back up config? [y/N]: "
+    printfc -n "$YELLOW" "Remove all tunnels and back up config? [y/N]: "
     read -r confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         echo ""
@@ -107,12 +107,12 @@ else
             s_name=$(basename "$s")
             conf_file="$WPM_CONFIG_DIR/${s_name%-wpm}.conf"
 
-            [ -f "$conf_file" ] && printfc "$GREEN" "Backup: ~/wpm-backups/%s\n" "$(basename "$conf_file")"
-            _remove_wpm_tunnel "$s_name" "$WPM_CONFIG_DIR" "$SERVICE_BASE_DIR" || printfc "$YELLOW" "Disable failed: %s\n" "$s_name"
-            printfc "$GREEN" "Removed: %s\n" "$s_name"
+            [ -f "$conf_file" ] && printfc "$GREEN" "Backup: ~/wpm-backups/%s" "$(basename "$conf_file")"
+            _remove_wpm_tunnel "$s_name" "$WPM_CONFIG_DIR" "$SERVICE_BASE_DIR" || printfc "$YELLOW" "Disable failed: %s" "$s_name"
+            printfc "$GREEN" "Removed: %s" "$s_name"
         done
     else
-        printfc "$YELLOW" "Skipped removal.\n"
+        printfc "$YELLOW" "Skipped removal."
         kept_wpm=1
     fi
 fi
@@ -127,7 +127,7 @@ YEARWALL_DIR="$HOME/.config/termux-config-files/yearwall"
 YEARWALL_BOOT_SCRIPT="$HOME/.termux/boot/50-yearwall.sh"
 
 if [ -f "$YEARWALL_DIR/yearwall_update.sh" ]; then
-    printfc "$YELLOW" "Remove setup? [y/N]: "
+    printfc -n "$YELLOW" "Remove setup? [y/N]: "
     read -r confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         echo ""
@@ -136,92 +136,92 @@ if [ -f "$YEARWALL_DIR/yearwall_update.sh" ]; then
 
         _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$CONFIG_PATH/data/wallpaper/wallpaper.png"
 
-        printfc "$GREEN" "Generated wallpaper and update script removed.\n"
-        [ "$had_boot_script" -eq 1 ] && printfc "$GREEN" "Boot persistence script removed.\n"
-        printfc "$GREEN" "Wallpaper restored to default.\n"
+        printfc "$GREEN" "Generated wallpaper and update script removed."
+        [ "$had_boot_script" -eq 1 ] && printfc "$GREEN" "Boot persistence script removed."
+        printfc "$GREEN" "Wallpaper restored to default."
 
         if command -v crontab &>/dev/null; then
-            printfc "$GREEN" "Crontab cleared.\n"
+            printfc "$GREEN" "Crontab cleared."
         else
-            printfc "$YELLOW" "Crontab missing. Skipped cron removal.\n"
+            printfc "$YELLOW" "Crontab missing. Skipped cron removal."
         fi
     else
-        printfc "$YELLOW" "Skipped removal. Wallpaper and boot scripts preserved.\n"
+        printfc "$YELLOW" "Skipped removal. Wallpaper and boot scripts preserved."
         kept_yearwall=1
     fi
 else
-    printfc "$YELLOW" "No wallpaper setup found.\n"
+    printfc "$YELLOW" "No wallpaper setup found."
 fi
 
 # ==============================================================================
 # 4b. FONT CACHE CLEANUP
 # ==============================================================================
 
-printfc "$BLUE" "\n>Nerd Font Cache Cleanup\n"
+printfc "$BLUE" "\n>Nerd Font Cache Cleanup"
 
 FONT_DIR="$HOME/.config/termux-config-files/fonts"
 
 if [ -d "$FONT_DIR" ]; then
     if [ "$kept_yearwall" = 1 ]; then
-        printfc "$YELLOW" "Skipped: font still used by yearwall wallpaper generation.\n"
+        printfc "$YELLOW" "Skipped: font still used by yearwall wallpaper generation."
     else
         rm -rf "$FONT_DIR"
-        printfc "$GREEN" "Font cache removed.\n"
+        printfc "$GREEN" "Font cache removed."
     fi
 else
-    printfc "$YELLOW" "No font cache found.\n"
+    printfc "$YELLOW" "No font cache found."
 fi
 
 # ==============================================================================
 # 4c. TRASH FOLDER (optional)
 # ==============================================================================
 
-printfc "$BLUE" "\n>Trash Folder\n"
+printfc "$BLUE" "\n>Trash Folder"
 
 TRASH_DIR="$HOME/.trash"
 if [ -d "$TRASH_DIR" ]; then
-    printfc "$YELLOW" "Remove ~/.trash (emptying it permanently)? [y/N]: "
+    printfc -n "$YELLOW" "Remove ~/.trash (emptying it permanently)? [y/N]: "
     read -r confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         rm -rf "$TRASH_DIR"
-        printfc "$GREEN" "Trash folder removed.\n"
+        printfc "$GREEN" "Trash folder removed."
     else
-        printfc "$YELLOW" "Skipped trash folder removal.\n"
+        printfc "$YELLOW" "Skipped trash folder removal."
     fi
 else
-    printfc "$YELLOW" "No trash folder found.\n"
+    printfc "$YELLOW" "No trash folder found."
 fi
 
 # ==============================================================================
 # 5. SERVICES (optional)
 # ==============================================================================
 
-printfc "$BLUE" "\n>Service Termination\n"
+printfc "$BLUE" "\n>Service Termination"
 
 if command -v sv-disable &>/dev/null; then
-    printfc "$YELLOW" "Disable SSH service? [y/N]: "
+    printfc -n "$YELLOW" "Disable SSH service? [y/N]: "
     read -r confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         if sv-disable sshd > /dev/null 2>&1; then
-            printfc "$GREEN" "SSH disabled.\n"
+            printfc "$GREEN" "SSH disabled."
         else
-            printfc "$RED" "Failed to disable SSH service.\n"
+            printfc "$RED" "Failed to disable SSH service."
         fi
     else
-        printfc "$YELLOW" "Skipped SSH changes.\n"
+        printfc "$YELLOW" "Skipped SSH changes."
     fi
 else
-    printfc "$YELLOW" "termux-services missing.\n"
+    printfc "$YELLOW" "termux-services missing."
 fi
 
 # ==============================================================================
 # 6. NEOVIM CONFIGURATION
 # ==============================================================================
 
-printfc "$BLUE" "\n>Neovim Cleanup\n"
+printfc "$BLUE" "\n>Neovim Cleanup"
 if [ -d "$HOME/.config/nvim" ] && [ -z "$(ls -A "$HOME/.config/nvim")" ]; then
     rmdir "$HOME/.config/nvim"
-    printfc "$GREEN" "Removed empty nvim directory.\n"
+    printfc "$GREEN" "Removed empty nvim directory."
 fi
 
 # ==============================================================================
@@ -241,7 +241,7 @@ if [ -d "$BLK_CONFIG_DIR" ]; then
 
     if [ -s "$BLOCKED_FILE" ] && [ -n "$API_KEY" ]; then
         echo ""
-        printfc "$YELLOW" "Sending unblock intents...\n"
+        printfc "$YELLOW" "Sending unblock intents..."
         unblock_failed=0
         while IFS= read -r pkg; do
             [ -z "$pkg" ] && continue
@@ -256,28 +256,28 @@ if [ -d "$BLK_CONFIG_DIR" ]; then
             fi
         done < "$BLOCKED_FILE"
         if [ "$unblock_failed" -eq 0 ]; then
-            printfc "$GREEN" "All apps unblocked successfully.\n"
+            printfc "$GREEN" "All apps unblocked successfully."
         else
-            printfc "$YELLOW" "Some unblock intents failed to dispatch. Check manually before assuming apps are unblocked.\n"
+            printfc "$YELLOW" "Some unblock intents failed to dispatch. Check manually before assuming apps are unblocked."
         fi
         echo ""
     fi
 
     if [ -n "$API_KEY" ]; then
-        printfc "$YELLOW" "Delete the API key? [y/N]: "
+        printfc -n "$YELLOW" "Delete the API key? [y/N]: "
         read -r confirm
         if [[ "$confirm" =~ ^[Yy]$ ]]; then
             rm -rf "$BLK_CONFIG_DIR"
-            printfc "$GREEN" "BLK local configuration data purged.\n"
+            printfc "$GREEN" "BLK local configuration data purged."
         else
             rm -f "$BLOCKED_FILE"
-            printfc "$GREEN" "Blocked app list cleared. API key preserved.\n"
+            printfc "$GREEN" "Blocked app list cleared. API key preserved."
         fi
     else
-        printfc "$YELLOW" "No API key found. Nothing to clean up.\n"
+        printfc "$YELLOW" "No API key found. Nothing to clean up."
     fi
 else
-    printfc "$YELLOW" "No BLK config directory found.\n"
+    printfc "$YELLOW" "No BLK config directory found."
 fi
 
 # ==============================================================================
@@ -285,9 +285,9 @@ fi
 # ==============================================================================
 
 echo ""
-printfc "$GREEN" "Reset complete. Run exit and relaunch Termux.\n"
+printfc "$GREEN" "Reset complete. Run exit and relaunch Termux."
 echo ""
-printfc "$YELLOW" "Note: Uninstall these manually if you no longer use them:\n"
+printfc "$YELLOW" "Note: Uninstall these manually if you no longer use them:"
 for pkg in $SETUP_PKGS; do
     keep=""
     if [ "$kept_wpm" = 1 ]; then
@@ -303,9 +303,9 @@ for pkg in $SETUP_PKGS; do
         esac
     fi
     if [ -n "$keep" ]; then
-        printfc "$YELLOW" "  - %s (keep — still used by: %s)\n" "$pkg" "$keep"
+        printfc "$YELLOW" "  - %s (keep — still used by: %s)" "$pkg" "$keep"
     else
-        printfc "$YELLOW" "  - %s\n" "$pkg"
+        printfc "$YELLOW" "  - %s" "$pkg"
     fi
 done
 echo ""

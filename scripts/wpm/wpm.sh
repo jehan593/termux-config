@@ -20,7 +20,7 @@ _select_tunnels_fzf() {
     local -a services=("$SERVICE_BASE_DIR"/*-wpm)
 
     [[ -d "${services[0]}" ]] || {
-        printfc "$NORD_YELLOW" "No tunnels found.\n"
+        printfc "$NORD_YELLOW" "No tunnels found."
         echo ""
         return 1
     }
@@ -48,7 +48,7 @@ _select_tunnels_fzf() {
         --color="16,header:4,prompt:6,pointer:2,hl:2")
 
     if [[ -z "$selections" ]]; then
-        printfc "$NORD_YELLOW" "Cancelled.\n"
+        printfc "$NORD_YELLOW" "Cancelled."
         echo ""
         return 1
     fi
@@ -66,17 +66,17 @@ _select_tunnels_fzf() {
 # --- Actions ---
 
 list_proxies() {
-    printfc "$NORD_BLUE" "\n>Active Tunnels\n"
+    printfc "$NORD_BLUE" "\n>Active Tunnels"
 
     local -a services=("$SERVICE_BASE_DIR"/*-wpm)
     [[ -d "${services[0]}" ]] || {
-        printfc "$NORD_YELLOW" "No active tunnels.\n"
+        printfc "$NORD_YELLOW" "No active tunnels."
         echo ""
         return 0
     }
 
-    printfc "$NORD_BLUE" "%-25s %-10s %-8s %-6s\n" "SERVICE" "STATUS" "PORT" "TEST"
-    printfc "$NORD_POLAR_4" "─────────────────────────────────────────────────\n"
+    printfc "$NORD_POLAR_4" "\n%-25s %-10s %-8s %-6s" "SERVICE" "STATUS" "PORT" "TEST"
+    printfc "$NORD_POLAR_4" "─────────────────────────────────────────────────"
 
     for s in "${services[@]}"; do
         [[ -d "$s" ]] || continue
@@ -103,7 +103,7 @@ list_proxies() {
         local row_color="$NORD_RED"
         [[ "$state" == "run" ]] && row_color="$NORD_GREEN"
 
-        printfc "$row_color" "%-25s %-10s %-8s %-6s\n" "$s_name" "$state" "$port" "$test_result"
+        printfc "$row_color" "%-25s %-10s %-8s %-6s" "$s_name" "$state" "$port" "$test_result"
     done
 
     echo ""
@@ -111,7 +111,7 @@ list_proxies() {
 
 add_proxy() {
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
-        printfc "$NORD_YELLOW" "Usage: wpm add <name> <config> <port>\n"
+        printfc "$NORD_YELLOW" "Usage: wpm add <name> <config> <port>"
         return 1
     fi
 
@@ -128,13 +128,13 @@ add_proxy() {
 
     # Check for duplicate name
     if [ -d "$SERVICE_DIR" ] || [ -f "$FINAL_CONFIG" ]; then
-        printfc "$NORD_RED" "A tunnel or config with the name '%s' already exists.\n" "$custom_name"
+        printfc "$NORD_RED" "A tunnel or config with the name '%s' already exists." "$custom_name"
         return 1
     fi
 
     # Validate source configuration file
     if [ ! -f "$wg_path" ]; then
-        printfc "$NORD_RED" "Config not found: %s\n" "$wg_path"
+        printfc "$NORD_RED" "Config not found: %s" "$wg_path"
         return 1
     fi
 
@@ -145,13 +145,13 @@ add_proxy() {
             local existing_port
             existing_port=$(grep "BindAddress" "$conf" | cut -d':' -f2)
             if [ "$existing_port" = "$proxy_port" ]; then
-                printfc "$NORD_RED" "Port %s is already in use by %s\n" "$proxy_port" "$(basename "$conf")"
+                printfc "$NORD_RED" "Port %s is already in use by %s" "$proxy_port" "$(basename "$conf")"
                 return 1
             fi
         done
     fi
 
-    printfc "$NORD_BLUE" "\n>Installing Tunnel: %s\n" "$custom_name"
+    printfc "$NORD_BLUE" "\n>Installing Tunnel: %s" "$custom_name"
 
     mkdir -p "$CONFIG_DIR"
 
@@ -159,11 +159,11 @@ add_proxy() {
     if grep -q "^\[Socks5\]" "$wg_path"; then
         command cp "$wg_path" "$FINAL_CONFIG"
         local existing_port=$(grep "BindAddress" "$wg_path" | cut -d':' -f2)
-        printfc "$NORD_SNOW_1" "Socks5 configuration block detected.\n"
-        printfc "$NORD_SNOW_1" "Port: %s\n" "${existing_port:-unknown}"
+        printfc "$NORD_SNOW_1" "Socks5 configuration block detected."
+        printfc "$NORD_SNOW_1" "Port: %s" "${existing_port:-unknown}"
 
         if [ "$existing_port" != "$proxy_port" ]; then
-            printfc "$NORD_YELLOW" "Note: Embedded config port (%s) differs from request (%s).\n" "$existing_port" "$proxy_port"
+            printfc "$NORD_YELLOW" "Note: Embedded config port (%s) differs from request (%s)." "$existing_port" "$proxy_port"
         fi
     else
         {
@@ -172,8 +172,8 @@ add_proxy() {
             echo ""
             cat "$wg_path"
         } > "$FINAL_CONFIG"
-        printfc "$NORD_SNOW_1" "Config saved as %s\n" "$(basename "$FINAL_CONFIG")"
-        printfc "$NORD_SNOW_1" "Port: %s\n" "${proxy_port}"
+        printfc "$NORD_SNOW_1" "Config saved as %s" "$(basename "$FINAL_CONFIG")"
+        printfc "$NORD_SNOW_1" "Port: %s" "${proxy_port}"
     fi
 
     echo ""
@@ -200,15 +200,15 @@ RUNEOF
     done
 
     if [ "$enabled" -eq 1 ]; then
-        printfc "$NORD_GREEN" "Tunnel enabled: %s\n" "$service_name"
+        printfc "$NORD_GREEN" "Tunnel enabled: %s" "$service_name"
     else
-        printfc "$NORD_RED" "Failed to enable tunnel.\n"
+        printfc "$NORD_RED" "Failed to enable tunnel."
     fi
     echo ""
 }
 
 start_proxy() {
-    printfc "$NORD_BLUE" "\n>Start Tunnels\n"
+    printfc "$NORD_BLUE" "\n>Start Tunnels"
     local selections
     selections=$(_select_tunnels_fzf "Select tunnel(s) to start: ") || return 0
 
@@ -216,14 +216,14 @@ start_proxy() {
     while read -r line; do
         [[ -z "$line" ]] && continue
         local s_name=$(echo "$line" | awk '{print $1}')
-        printfc "$NORD_SNOW_1" "Starting: %s\n" "$s_name"
-        sv start "$s_name" > /dev/null 2>&1 && printfc "$NORD_GREEN" "Started: %s\n" "$s_name" || printfc "$NORD_RED" "Failed to start: %s\n" "$s_name"
+        printfc "$NORD_SNOW_1" "Starting: %s" "$s_name"
+        sv start "$s_name" > /dev/null 2>&1 && printfc "$NORD_GREEN" "Started: %s" "$s_name" || printfc "$NORD_RED" "Failed to start: %s" "$s_name"
     done <<< "$selections"
     echo ""
 }
 
 stop_proxy() {
-    printfc "$NORD_BLUE" "\n>Stop Tunnels\n"
+    printfc "$NORD_BLUE" "\n>Stop Tunnels"
     local selections
     selections=$(_select_tunnels_fzf "Select tunnel(s) to stop: ") || return 0
 
@@ -231,14 +231,14 @@ stop_proxy() {
     while read -r line; do
         [[ -z "$line" ]] && continue
         local s_name=$(echo "$line" | awk '{print $1}')
-        printfc "$NORD_SNOW_1" "Stopping: %s\n" "$s_name"
-        sv stop "$s_name" > /dev/null 2>&1 && printfc "$NORD_GREEN" "Stopped: %s\n" "$s_name" || printfc "$NORD_RED" "Failed to stop: %s\n" "$s_name"
+        printfc "$NORD_SNOW_1" "Stopping: %s" "$s_name"
+        sv stop "$s_name" > /dev/null 2>&1 && printfc "$NORD_GREEN" "Stopped: %s" "$s_name" || printfc "$NORD_RED" "Failed to stop: %s" "$s_name"
     done <<< "$selections"
     echo ""
 }
 
 restart_proxy() {
-    printfc "$NORD_BLUE" "\n>Restart Tunnels\n"
+    printfc "$NORD_BLUE" "\n>Restart Tunnels"
     local selections
     selections=$(_select_tunnels_fzf "Select tunnel(s) to restart: ") || return 0
 
@@ -246,14 +246,14 @@ restart_proxy() {
     while read -r line; do
         [[ -z "$line" ]] && continue
         local s_name=$(echo "$line" | awk '{print $1}')
-        printfc "$NORD_SNOW_1" "Restarting: %s\n" "$s_name"
-        sv restart "$s_name" > /dev/null 2>&1 && printfc "$NORD_GREEN" "Restarted: %s\n" "$s_name" || printfc "$NORD_RED" "Failed to restart: %s\n" "$s_name"
+        printfc "$NORD_SNOW_1" "Restarting: %s" "$s_name"
+        sv restart "$s_name" > /dev/null 2>&1 && printfc "$NORD_GREEN" "Restarted: %s" "$s_name" || printfc "$NORD_RED" "Failed to restart: %s" "$s_name"
     done <<< "$selections"
     echo ""
 }
 
 remove_proxy() {
-    printfc "$NORD_BLUE" "\n>Uninstall Tunnels\n"
+    printfc "$NORD_BLUE" "\n>Uninstall Tunnels"
     local selections
     selections=$(_select_tunnels_fzf "Select tunnel(s) to remove: ") || return 0
 
@@ -266,9 +266,9 @@ remove_proxy() {
         local base_name="${s_name%-wpm}"
         local conf_file="$CONFIG_DIR/${base_name}.conf"
 
-        [ -f "$conf_file" ] && printfc "$NORD_GREEN" "Backup: ~/wpm-backups/%s.conf\n" "$base_name"
-        _remove_wpm_tunnel "$s_name" "$CONFIG_DIR" "$SERVICE_BASE_DIR" || printfc "$NORD_YELLOW" "Disable failed: %s\n" "$s_name"
-        printfc "$NORD_GREEN" "Removed: %s\n" "$s_name"
+        [ -f "$conf_file" ] && printfc "$NORD_GREEN" "Backup: ~/wpm-backups/%s.conf" "$base_name"
+        _remove_wpm_tunnel "$s_name" "$CONFIG_DIR" "$SERVICE_BASE_DIR" || printfc "$NORD_YELLOW" "Disable failed: %s" "$s_name"
+        printfc "$NORD_GREEN" "Removed: %s" "$s_name"
     done <<< "$selections"
     echo ""
 }
@@ -278,7 +278,7 @@ refresh_proxies() {
 
     local -a services=("$SERVICE_BASE_DIR"/*-wpm)
     [[ -d "${services[0]}" ]] || {
-        printfc "$NORD_YELLOW" "No tunnels to restart.\n"
+        printfc "$NORD_YELLOW" "No tunnels to restart."
         echo ""
         return 0
     }
@@ -287,15 +287,15 @@ refresh_proxies() {
     for s in "${services[@]}"; do
         [[ -d "$s" ]] || continue
         local s_name=$(basename "$s")
-        printfc "$NORD_SNOW_1" "Restarting: %s\n" "$s_name"
+        printfc "$NORD_SNOW_1" "Restarting: %s" "$s_name"
         sv restart "$s_name" || ((failed++))
     done
 
     echo ""
     if [ "$failed" -eq 0 ]; then
-        printfc "$NORD_GREEN" "All tunnels restarted.\n"
+        printfc "$NORD_GREEN" "All tunnels restarted."
     else
-        printfc "$NORD_YELLOW" "Failed to restart %s tunnel(s).\n" "$failed"
+        printfc "$NORD_YELLOW" "Failed to restart %s tunnel(s)." "$failed"
     fi
     echo ""
 }
@@ -311,13 +311,13 @@ case "$1" in
     refresh) refresh_proxies ;;
     *)
         printfc "$NORD_BLUE" "\n>Wireproxy Manager(wpm)\n"
-        printfc "$NORD_SNOW_1" "add <name> <conf> <port>     Add a proxy\n"
-        printfc "$NORD_SNOW_1" "rm                           Remove a proxy\n"
-        printfc "$NORD_SNOW_1" "start                        Start target proxy service(s)\n"
-        printfc "$NORD_SNOW_1" "stop                         Stop target proxy service(s)\n"
-        printfc "$NORD_SNOW_1" "restart                      Restart target proxy service(s)\n"
-        printfc "$NORD_SNOW_1" "ls                           List proxies\n"
-        printfc "$NORD_SNOW_1" "refresh                      Restart All Proxy Services\n"
+        printfc "$NORD_SNOW_1" "add <name> <conf> <port>     Add a proxy"
+        printfc "$NORD_SNOW_1" "rm                           Remove a proxy"
+        printfc "$NORD_SNOW_1" "start                        Start target proxy service(s)"
+        printfc "$NORD_SNOW_1" "stop                         Stop target proxy service(s)"
+        printfc "$NORD_SNOW_1" "restart                      Restart target proxy service(s)"
+        printfc "$NORD_SNOW_1" "ls                           List proxies"
+        printfc "$NORD_SNOW_1" "refresh                      Restart All Proxy Services"
         echo ""
         exit 1
         ;;

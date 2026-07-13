@@ -23,26 +23,26 @@ _save_api_key() { echo "API_KEY=\"$1\"" > "$CONFIG_FILE" && chmod 600 "$CONFIG_F
 _ensure_api_key() {
     _load_api_key
     if [ -z "$API_KEY" ]; then
-        printfc "$NORD_BLUE" "\n>API Key Setup\n"
-        printfc "$NORD_YELLOW" "No API key found.\n"
-        read -p "$(printfc "$NORD_BLUE" "Enter API key: ")" new_key
-        [ -z "$new_key" ] && { printfc "$NORD_RED" "Aborted.\n"; exit 1; }
+        printfc "$NORD_BLUE" "\n>API Key Setup"
+        printfc "$NORD_YELLOW" "No API key found."
+        read -p "$(printfc -n "$NORD_YELLOW" "Enter API key: ")" new_key
+        [ -z "$new_key" ] && { printfc "$NORD_RED" "Aborted."; exit 1; }
         _save_api_key "$new_key" && API_KEY="$new_key"
-        printfc "$NORD_GREEN" "Key saved.\n"
+        printfc "$NORD_GREEN" "Key saved."
         echo ""
     fi
 }
 
 set_api_key() {
-    printfc "$NORD_BLUE" "\n>API Key Management\n"
+    printfc "$NORD_BLUE" "\n>API Key Management"
     _load_api_key
-    [ -n "$API_KEY" ] && printfc "$NORD_GREEN" "Current: %s************\n" "${API_KEY:0:4}"
-    read -p "$(printfc "$NORD_BLUE" "Enter new API key (or press Enter to cancel): ")" new_key
+    [ -n "$API_KEY" ] && printfc "$NORD_GREEN" "Current: %s************" "${API_KEY:0:4}"
+    read -p "$(printfc -n "$NORD_YELLOW" "Enter new API key (or press Enter to cancel): ")" new_key
     if [ -n "$new_key" ]; then
         _save_api_key "$new_key"
-        printfc "$NORD_GREEN" "Key updated.\n"
+        printfc "$NORD_GREEN" "Key updated."
     else
-        printfc "$NORD_YELLOW" "Cancelled.\n"
+        printfc "$NORD_YELLOW" "Cancelled."
     fi
     echo ""
 }
@@ -62,13 +62,13 @@ CONTACTS_STATE_FILE="$CONFIG_DIR/wa_contacts_state"
 
 # --- WhatsApp Contact Toggle ---
 toggle_whatsapp_contacts() {
-    printfc "$NORD_BLUE" "\n>WhatsApp Contacts Permission\n"
+    printfc "$NORD_BLUE" "\n>WhatsApp Contacts Permission"
     _ensure_api_key
     local wa_pkg="com.whatsapp"
     local perm="android.permission.READ_CONTACTS"
 
     if ! cmd package list packages | grep -qFx "package:$wa_pkg"; then
-        printfc "$NORD_RED" "WhatsApp (%s) is not installed.\n" "$wa_pkg"
+        printfc "$NORD_RED" "WhatsApp (%s) is not installed." "$wa_pkg"
         echo ""
         exit 1
     fi
@@ -77,20 +77,20 @@ toggle_whatsapp_contacts() {
     [ -f "$CONTACTS_STATE_FILE" ] && current_state=$(cat "$CONTACTS_STATE_FILE")
 
     if [ "$current_state" = "granted" ]; then
-        printfc "$NORD_YELLOW" "Revoking Contacts permission from WhatsApp...\n"
+        printfc "$NORD_YELLOW" "Revoking Contacts permission from WhatsApp..."
         if send_intent "SET_PERMISSION_DENIED" "$wa_pkg" "$perm"; then
             echo "denied" > "$CONTACTS_STATE_FILE"
-            printfc "$NORD_GREEN" "Permission blocked successfully.\n"
+            printfc "$NORD_GREEN" "Permission blocked successfully."
         else
-            printfc "$NORD_RED" "Intent broadcast failed. Permission state left unchanged.\n"
+            printfc "$NORD_RED" "Intent broadcast failed. Permission state left unchanged."
         fi
     else
-        printfc "$NORD_YELLOW" "Granting Contacts permission to WhatsApp...\n"
+        printfc "$NORD_YELLOW" "Granting Contacts permission to WhatsApp..."
         if send_intent "SET_PERMISSION_GRANTED" "$wa_pkg" "$perm"; then
             echo "granted" > "$CONTACTS_STATE_FILE"
-            printfc "$NORD_GREEN" "Permission allowed successfully.\n"
+            printfc "$NORD_GREEN" "Permission allowed successfully."
         else
-            printfc "$NORD_RED" "Intent broadcast failed. Permission state left unchanged.\n"
+            printfc "$NORD_RED" "Intent broadcast failed. Permission state left unchanged."
         fi
     fi
     echo ""
@@ -99,7 +99,7 @@ toggle_whatsapp_contacts() {
 # --- Main Block Interface ---
 manage_blocks() {
     _ensure_api_key
-    printfc "$NORD_BLUE" "\n>App Blocker\n"
+    printfc "$NORD_BLUE" "\n>App Blocker"
 
     # 1. Gather all 3rd party apps
     local all_pkgs=$(cmd package list packages -3 | sed 's/^package://' | sort)
@@ -123,7 +123,7 @@ manage_blocks() {
         --preview "$PREVIEW_CMD" --preview-window=top:40%:wrap \
         --preview-label="Currently Blocked Apps")
 
-    [ -z "$choice" ] && { echo ""; printfc "$NORD_YELLOW" "No changes applied.\n"; echo ""; return 0; }
+    [ -z "$choice" ] && { echo ""; printfc "$NORD_YELLOW" "No changes applied."; echo ""; return 0; }
 
     # Extract the clean package names from the user's choice
     local targeted_pkgs=$(echo "$choice" | awk '{print $1}')
@@ -144,14 +144,14 @@ manage_blocks() {
     # 4. Apply blocks
     if [ -n "$to_block" ]; then
         echo ""
-        printfc "$NORD_YELLOW" "Blocking apps...\n"
+        printfc "$NORD_YELLOW" "Blocking apps..."
         while IFS= read -r pkg; do
             [ -z "$pkg" ] && continue
             if send_intent "SUSPEND" "$pkg"; then
                 echo "-> $pkg"
                 currently_blocked=$(echo -e "$currently_blocked\n$pkg" | sort -u)
             else
-                printfc "$NORD_RED" "-> %s (broadcast failed, not marked blocked)\n" "$pkg"
+                printfc "$NORD_RED" "-> %s (broadcast failed, not marked blocked)" "$pkg"
             fi
         done <<< "$(echo -e "$to_block")"
     fi
@@ -159,14 +159,14 @@ manage_blocks() {
     # 5. Apply unblocks
     if [ -n "$to_unblock" ]; then
         echo ""
-        printfc "$NORD_GREEN" "Unblocking apps...\n"
+        printfc "$NORD_GREEN" "Unblocking apps..."
         while IFS= read -r pkg; do
             [ -z "$pkg" ] && continue
             if send_intent "UNSUSPEND" "$pkg"; then
                 echo "-> $pkg"
                 currently_blocked=$(echo "$currently_blocked" | grep -vFx "$pkg")
             else
-                printfc "$NORD_RED" "-> %s (broadcast failed, still marked blocked)\n" "$pkg"
+                printfc "$NORD_RED" "-> %s (broadcast failed, still marked blocked)" "$pkg"
             fi
         done <<< "$(echo -e "$to_unblock")"
     fi
@@ -174,7 +174,7 @@ manage_blocks() {
     # 6. Save final cleaned state back to file
     echo "$currently_blocked" | sed '/^$/d' > "$BLOCKED_FILE"
     echo ""
-    printfc "$NORD_GREEN" "Blocklist updated successfully.\n"
+    printfc "$NORD_GREEN" "Blocklist updated successfully."
     echo ""
 }
 
@@ -183,5 +183,5 @@ case "$1" in
     key) set_api_key ;;
     wa)  toggle_whatsapp_contacts ;;
     "")  manage_blocks ;;
-    *)   printfc "$NORD_RED" "Unknown command: %s\n" "$1"; echo "Usage: blk [key|wa]"; exit 1 ;;
+    *)   printfc "$NORD_RED" "Unknown command: %s" "$1"; echo "Usage: blk [key|wa]"; exit 1 ;;
 esac
