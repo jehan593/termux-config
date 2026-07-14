@@ -23,7 +23,6 @@ _save_api_key() { echo "API_KEY=\"$1\"" > "$CONFIG_FILE" && chmod 600 "$CONFIG_F
 _ensure_api_key() {
     _load_api_key
     if [ -z "$API_KEY" ]; then
-        printfc "$NORD_BLUE" "\n>API Key Setup"
         printfc "$NORD_YELLOW" "No API key found."
         read -p "$(printfc -n "$NORD_YELLOW" "Enter API key: ")" new_key
         [ -z "$new_key" ] && { printfc "$NORD_RED" "Aborted."; exit 1; }
@@ -34,7 +33,6 @@ _ensure_api_key() {
 }
 
 set_api_key() {
-    printfc "$NORD_BLUE" "\n>API Key Management"
     _load_api_key
     [ -n "$API_KEY" ] && printfc "$NORD_GREEN" "Current: %s************" "${API_KEY:0:4}"
     read -p "$(printfc -n "$NORD_YELLOW" "Enter new API key (or press Enter to cancel): ")" new_key
@@ -51,7 +49,6 @@ CONTACTS_STATE_FILE="$CONFIG_DIR/wa_contacts_state"
 
 # --- WhatsApp Contact Toggle ---
 toggle_whatsapp_contacts() {
-    printfc "$NORD_BLUE" "\n>WhatsApp Contacts Permission"
     _ensure_api_key
     local wa_pkg="com.whatsapp"
     local perm="android.permission.READ_CONTACTS"
@@ -88,8 +85,6 @@ toggle_whatsapp_contacts() {
 # --- Main Block Interface ---
 manage_blocks() {
     _ensure_api_key
-    printfc "$NORD_BLUE" "\n>App Blocker"
-
     # 1. Gather all 3rd party apps
     local all_pkgs=$(cmd package list packages -3 | sed 's/^package://' | sort)
     local currently_blocked=$(cat "$BLOCKED_FILE" | sort)

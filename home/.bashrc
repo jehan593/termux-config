@@ -78,8 +78,6 @@ sys() {
 }
 
 cup() {
-    printfc "$NORD_BLUE" "\n>Checking Updates"
-
     pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1
     local upgradable=$(apt list --upgradable 2>/dev/null | grep '\[upgradable')
 
@@ -95,7 +93,6 @@ cup() {
 }
 
 upp() {
-    printfc "$NORD_BLUE" "\n>Upgrading Packages\n"
     if pkg upgrade -y; then
         printfc "$NORD_GREEN" "Upgrade complete."
     else
@@ -105,20 +102,16 @@ upp() {
 }
 
 upall() {
+    printfc "$NORD_BLUE" "\n>Upgrading Packages\n"
     upp
+    printfc "$NORD_BLUE" "\n>Syncing Config\n"
     upc
 }
 
 upc() {
-    printfc "$NORD_BLUE" "\n>Syncing Dotfiles\n"
     if git -C "$TERMUX_CONFIG_PATH" pull --rebase --autostash; then
-        printfc "$NORD_GREEN" "Sync complete."
         printfc "$NORD_YELLOW" "Run 'reload' to apply updated configuration."
         echo ""
-    else
-        printfc "$NORD_RED" "Sync failed."
-        echo ""
-    fi
 }
 
 inst() {
@@ -138,13 +131,8 @@ inst() {
     echo "$selected" | sed 's/ /\n/g; s/^/+ /'
     echo ""
 
-    printfc "$NORD_BLUE" "\n>Installing Packages\n"
     history -s "pkg install -y $selected"
-    if pkg install -y $selected; then
-        printfc "$NORD_GREEN" "Installed successfully."
-    else
-        printfc "$NORD_RED" "Installation failed."
-    fi
+    pkg install -y $selected
 }
 
 uinst() {
@@ -164,28 +152,18 @@ uinst() {
     echo "$selected" | sed 's/ /\n/g; s/^/- /'
     echo ""
 
-    printfc "$NORD_BLUE" "\n>Uninstalling Packages\n"
     history -s "pkg uninstall -y $selected"
-    if pkg uninstall -y $selected; then
-        printfc "$NORD_GREEN" "Uninstall complete."
-    else
-        printfc "$NORD_YELLOW" "Cancelled."
-        echo ""
-    fi
+    pkg uninstall -y $selected
 }
 
 cleanup() {
-    printfc "$NORD_BLUE" "\n>System Cleanup\n"
+    printfc "$NORD_BLUE" "\n>Package Cleanup"
     pkg clean
-    if apt autoremove -y; then
-        printfc "$NORD_GREEN" "Cleanup complete."
-    else
-        printfc "$NORD_RED" "Cleanup failed."
-    fi
-
+    apt autoremove -y
     if [ -d "$HOME/.trash" ] && [ -n "$(ls -A "$HOME/.trash" 2>/dev/null)" ]; then
         local trash_size=$(du -sh "$HOME/.trash" 2>/dev/null | awk '{print $1}')
         yes | trash-empty --trash-dir "$HOME/.trash" 0
+        printfc "$NORD_BLUE" "\n>Trash"
         printfc "$NORD_GREEN" "Trash emptied."
     fi
     echo ""
@@ -217,11 +195,7 @@ trash() {
     [[ ${#targets[@]} -eq 0 ]] && return 1
     command mkdir -p "$HOME/.trash"
     for item in "${targets[@]}"; do
-        if trash-put --trash-dir "$HOME/.trash" "$item"; then
-            echo "Trashed: $item"
-        else
-            echo "Failed to trash: $item"
-        fi
+        trash-put --trash-dir "$HOME/.trash" "$item"
     done
 }
 

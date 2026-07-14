@@ -66,8 +66,6 @@ _select_tunnels_fzf() {
 # --- Actions ---
 
 list_proxies() {
-    printfc "$NORD_BLUE" "\n>Active Tunnels"
-
     local -a services=("$SERVICE_BASE_DIR"/*-wpm)
     [[ -d "${services[0]}" ]] || {
         printfc "$NORD_YELLOW" "No active tunnels."
@@ -150,9 +148,6 @@ add_proxy() {
             fi
         done
     fi
-
-    printfc "$NORD_BLUE" "\n>Installing Tunnel: %s" "$custom_name"
-
     mkdir -p "$CONFIG_DIR"
 
     # Save and modify config based on whether [Socks5] configuration exists
@@ -209,7 +204,6 @@ RUNEOF
 
 _tunnel_action() {
     local verb="$1" title="$2" gerund="$3" past="$4"
-    printfc "$NORD_BLUE" "\n>$title Tunnels"
     local selections
     selections=$(_select_tunnels_fzf "Select tunnel(s) to $verb: ") || return 0
 
@@ -224,7 +218,6 @@ _tunnel_action() {
 }
 
 remove_proxy() {
-    printfc "$NORD_BLUE" "\n>Uninstall Tunnels"
     local selections
     selections=$(_select_tunnels_fzf "Select tunnel(s) to remove: ") || return 0
 
@@ -245,8 +238,6 @@ remove_proxy() {
 }
 
 refresh_proxies() {
-    printfc "$NORD_BLUE" "\n>Restarting All Tunnels\n"
-
     local -a services=("$SERVICE_BASE_DIR"/*-wpm)
     [[ -d "${services[0]}" ]] || {
         printfc "$NORD_YELLOW" "No tunnels to restart."
@@ -281,7 +272,6 @@ case "$1" in
     ls)      list_proxies ;;
     refresh) refresh_proxies ;;
     *)
-        printfc "$NORD_BLUE" "\n>Wireproxy Manager(wpm)\n"
         printfc "$NORD_SNOW_1" "add <name> <conf> <port>     Add a proxy"
         printfc "$NORD_SNOW_1" "rm                           Remove a proxy"
         printfc "$NORD_SNOW_1" "start                        Start target proxy service(s)"

@@ -3,11 +3,6 @@
 # ==============================================================================
 
 _test_dependencies() {
-    if [ $# -eq 0 ]; then
-        printfc "$NORD_RED" "Error: No commands specified to test."
-        return 1
-    fi
-
     local missing=()
     for cmd in "$@"; do
         command -v "$cmd" &>/dev/null || missing+=("$cmd")
