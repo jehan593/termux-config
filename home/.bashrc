@@ -112,6 +112,7 @@ upc() {
     if git -C "$TERMUX_CONFIG_PATH" pull --rebase --autostash; then
         printfc "$NORD_YELLOW" "Run 'reload' to apply updated configuration."
         echo ""
+    fi
 }
 
 inst() {
