@@ -9,6 +9,7 @@ CONFIG_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$CONFIG_PATH/helpers/colors-standard.sh"
 source "$CONFIG_PATH/helpers/printer.sh"
 source "$CONFIG_PATH/helpers/pkg-list.sh"
+source "$CONFIG_PATH/helpers/dotfiles-helper.sh"
 
 # ==============================================================================
 # START
@@ -78,26 +79,7 @@ done
 
 printfc "$BLUE" "\n>Linking Configuration Files\n"
 
-while IFS= read -r -d '' src; do
-    rel="${src#"$CONFIG_PATH/home/"}"
-    dest="$HOME/$rel"
-    mkdir -p "$(dirname "$dest")"
-
-    if [ -e "$dest" ] || [ -L "$dest" ]; then
-        if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$src" ]; then
-            rm -f "$dest"
-        elif [ -e "$dest.bak" ] || [ -L "$dest.bak" ]; then
-            printfc "$YELLOW" "Backup already exists, discarding current file: %s" "$rel"
-            rm -rf "$dest"
-        else
-            mv "$dest" "$dest.bak"
-            printfc "$YELLOW" "Backed up existing file: %s -> %s.bak" "$rel" "$rel"
-        fi
-    fi
-
-    ln -s "$src" "$dest"
-    printfc "$GREEN" "Linked: %s" "$rel"
-done < <(find "$CONFIG_PATH/home" -type f -print0)
+_link_dotfiles "$CONFIG_PATH"
 
 # ==============================================================================
 # 2b. EXPORT GLOBAL CONFIG PATH SYSTEM-WIDE

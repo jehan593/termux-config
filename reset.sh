@@ -8,6 +8,7 @@ CONFIG_PATH="$TERMUX_CONFIG_PATH"
 source "$CONFIG_PATH/helpers/colors-standard.sh"
 source "$CONFIG_PATH/helpers/printer.sh"
 source "$CONFIG_PATH/helpers/pkg-list.sh"
+source "$CONFIG_PATH/helpers/dotfiles-helper.sh"
 source "$CONFIG_PATH/helpers/wpm-helper.sh"
 source "$CONFIG_PATH/helpers/yearwall-helper.sh"
 source "$CONFIG_PATH/helpers/blk-helper.sh"
@@ -33,21 +34,7 @@ read -r confirm
 
 printfc "$BLUE" "\n>Removing Symlinks\n"
 
-while IFS= read -r -d '' src; do
-    rel="${src#"$CONFIG_PATH/home/"}"
-    link="$HOME/$rel"
-    if [ -L "$link" ]; then
-        rm -f "$link"
-        printfc "$GREEN" "Removed: %s" "$link"
-    else
-        printfc "$YELLOW" "Skipped: %s" "$link"
-    fi
-
-    if [ -e "$link.bak" ] || [ -L "$link.bak" ]; then
-        mv -f "$link.bak" "$link"
-        printfc "$GREEN" "Restored backup: %s" "$rel"
-    fi
-done < <(find "$CONFIG_PATH/home" -type f -print0)
+_unlink_dotfiles "$CONFIG_PATH"
 
 if [ -L "$HOME/.termux/font.ttf" ]; then
     rm -f "$HOME/.termux/font.ttf"

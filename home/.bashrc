@@ -230,11 +230,7 @@ ff() {
     fi
 
     local selection
-    if command -v fd > /dev/null 2>&1; then
-        selection=$(fd --hidden --color never . "$search_path" 2>/dev/null | fzf --no-multi --layout=reverse --height=40% --header="Searching: $search_path")
-    else
-        selection=$(find "$search_path" 2>/dev/null | fzf --no-multi --layout=reverse --height=40% --header="Searching: $search_path")
-    fi
+    selection=$(fd --hidden --color never . "$search_path" 2>/dev/null | fzf --no-multi --layout=reverse --height=40% --header="Searching: $search_path")
 
     if [ -n "$selection" ]; then
         local escaped="\"${selection}\""
