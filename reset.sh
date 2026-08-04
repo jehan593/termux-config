@@ -113,6 +113,7 @@ printfc "$BLUE" "\n>Lock Screen Year Progress Wallpaper Setup(yearwall) Removal\
 
 YEARWALL_DIR="$HOME/.config/termux-config-files/yearwall"
 YEARWALL_BOOT_SCRIPT="$HOME/.termux/boot/50-yearwall.sh"
+YEARWALL_PROFILE_SCRIPT="$PREFIX/etc/profile.d/yearwall-catchup.sh"
 
 if [ -f "$YEARWALL_DIR/yearwall_update.sh" ]; then
     printfc -n "$YELLOW" "Remove setup? [y/N]: "
@@ -120,12 +121,15 @@ if [ -f "$YEARWALL_DIR/yearwall_update.sh" ]; then
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         echo ""
         had_boot_script=0
+        had_profile_script=0
         [ -f "$YEARWALL_BOOT_SCRIPT" ] && had_boot_script=1
+        [ -f "$YEARWALL_PROFILE_SCRIPT" ] && had_profile_script=1
 
-        _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$CONFIG_PATH/data/wallpaper/wallpaper.png"
+        _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$CONFIG_PATH/data/wallpaper/wallpaper.png" "$YEARWALL_PROFILE_SCRIPT"
 
         printfc "$GREEN" "Generated wallpaper and update script removed."
         [ "$had_boot_script" -eq 1 ] && printfc "$GREEN" "Boot persistence script removed."
+        [ "$had_profile_script" -eq 1 ] && printfc "$GREEN" "Session catch-up script removed."
         printfc "$GREEN" "Wallpaper restored to default."
 
         if command -v crontab &>/dev/null; then

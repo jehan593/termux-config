@@ -41,7 +41,7 @@ All colored output goes through `printfc` (`helpers/printer.sh`): `printfc "$COL
 
 - **`tools/blk.sh` (`blk`)** — app blocker via broadcast intents to OwnDroid (`com.bintianqi.owndroid/.ApiReceiver`); requires an API key stored at `~/.config/termux-config-files/blk/config` (mode 600). `blk` (no args) opens an fzf multi-select blocklist manager; `blk key` sets the API key; `blk wa` toggles WhatsApp's Contacts permission.
 - **`tools/wpm.sh` (`wpm`)** — manages wireproxy SOCKS5 tunnels as `runit` services (`$PREFIX/var/service/<name>-wpm`), each backed by a config at `~/.config/termux-config-files/wpm/<name>.conf`. Subcommands: `add <name> <conf> <port>`, `rm`, `start`/`stop`/`restart` (fzf multi-select), `ls`, `refresh`.
-- **`tools/yearwall.sh` (`yearwall`)** — generates a lock-screen wallpaper showing year-progress as a dot grid via ImageMagick (`magick`), scheduled daily through `cronie` and re-applied on boot. Subcommands: `setup`, `status`, `rm`.
+- **`tools/yearwall.sh` (`yearwall`)** — generates a lock-screen wallpaper showing year-progress as a dot grid via ImageMagick (`magick`), scheduled daily through `cronie`, re-applied on boot, and caught up via a `profile.d` drop-in (`$PREFIX/etc/profile.d/yearwall-catchup.sh`) that regenerates it on the next opened session if cron missed midnight (device off / Termux not running). Subcommands: `setup`, `status`, `rm`.
 
 ### `.bashrc` (`home/.bashrc`)
 
