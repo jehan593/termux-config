@@ -184,8 +184,14 @@ printfc "$BLUE" "\n>Password Configuration"
 if [ -f "$HOME/.termux_authinfo" ]; then
     printfc "$GREEN" "Password set."
 else
-    printfc "$YELLOW" "Set a password:"
-    passwd
+    while [ ! -f "$HOME/.termux_authinfo" ]; do
+        printfc "$YELLOW" "Set a password:"
+        passwd
+        if [ ! -f "$HOME/.termux_authinfo" ]; then
+            printfc "$RED" "Passwords didn't match, try again."
+        fi
+    done
+    printfc "$GREEN" "Password set."
 fi
 
 # ==============================================================================
