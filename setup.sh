@@ -203,7 +203,9 @@ printfc "$BLUE" "\n>Applying Wallpaper"
 WALLPAPER="$CONFIG_PATH/data/wallpaper/wallpaper.png"
 if [ -f "$WALLPAPER" ]; then
     termux-wallpaper -f "$WALLPAPER"
-    termux-wallpaper -f "$WALLPAPER" -l
+    if [ ! -f "$HOME/.config/termux-config-files/yearwall/yearwall_update.sh" ]; then
+        termux-wallpaper -f "$WALLPAPER" -l
+    fi
     printfc "$GREEN" "Wallpaper applied."
 else
     printfc "$YELLOW" "Missing: wallpaper.png"
