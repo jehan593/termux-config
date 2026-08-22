@@ -7,7 +7,10 @@ source "$TERMUX_CONFIG_PATH/helpers/printer.sh"
 source "$TERMUX_CONFIG_PATH/helpers/dep-checker.sh"
 source "$TERMUX_CONFIG_PATH/helpers/wpm-helper.sh"
 
-_test_dependencies "wireproxy" "sv" "sv-enable" "fzf" || exit 1
+if ! _test_dependencies "wireproxy" "sv" "sv-enable" "fzf"; then
+    printfc "$NORD_RED" "Missing dependencies: %s" "${_MISSING_DEPS[*]}"
+    exit 1
+fi
 
 SERVICE_BASE_DIR="$PREFIX/var/service"
 CONFIG_DIR="$HOME/.config/termux-config-files/wpm"

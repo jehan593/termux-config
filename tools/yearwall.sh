@@ -7,7 +7,10 @@ source "$TERMUX_CONFIG_PATH/helpers/printer.sh"
 source "$TERMUX_CONFIG_PATH/helpers/dep-checker.sh"
 source "$TERMUX_CONFIG_PATH/helpers/yearwall-helper.sh"
 
-_test_dependencies "magick" "termux-wallpaper" || exit 1
+if ! _test_dependencies "magick" "termux-wallpaper"; then
+    printfc "$NORD_RED" "Missing dependencies: %s" "${_MISSING_DEPS[*]}"
+    exit 1
+fi
 
 YEARWALL_DIR="$HOME/.config/termux-config-files/yearwall"
 YEARWALL_UPDATE_SCRIPT="$YEARWALL_DIR/yearwall_update.sh"

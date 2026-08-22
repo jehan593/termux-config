@@ -6,6 +6,7 @@ source "$TERMUX_CONFIG_PATH/helpers/printer.sh"
 source "$TERMUX_CONFIG_PATH/helpers/dep-checker.sh"
 
 if ! _test_dependencies "starship" "zoxide" "nvim" "fzf" "fd" "trash-put" "trash-empty" "termux-open-url"; then
+    printfc "$NORD_RED" "Missing dependencies: %s" "${_MISSING_DEPS[*]}"
     printfc "$NORD_RED" "Skipping shell configuration. Run setup.sh to install missing dependencies."
     unset PROMPT_COMMAND
     PS1='\u@\h:\w\$ '
@@ -106,6 +107,7 @@ upall() {
     upp
     printfc "$NORD_BLUE" "\n>Syncing Config\n"
     upc
+    upfont
 }
 
 upc() {
@@ -113,6 +115,28 @@ upc() {
         printfc "$NORD_YELLOW" "Run 'reload' to apply updated configuration."
         echo ""
     fi
+}
+
+upfont() {
+    source "$TERMUX_CONFIG_PATH/helpers/font.sh"
+
+    printfc "$NORD_BLUE" "\n>Updating Nerd Font\n"
+    local rc=0
+    _font_setup --force || rc=$?
+    case "$rc" in
+        0)
+            printfc "$NORD_GREEN" "Font updated."
+            ;;
+        2)
+            printfc "$NORD_RED" "Download failed. Check internet."
+            return 1
+            ;;
+        3)
+            printfc "$NORD_RED" "Font asset not found."
+            return 1
+            ;;
+    esac
+    echo ""
 }
 
 inst() {

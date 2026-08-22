@@ -10,6 +10,7 @@ source "$CONFIG_PATH/helpers/colors-standard.sh"
 source "$CONFIG_PATH/helpers/printer.sh"
 source "$CONFIG_PATH/helpers/pkg-list.sh"
 source "$CONFIG_PATH/helpers/dotfiles-helper.sh"
+source "$CONFIG_PATH/helpers/font.sh"
 
 # ==============================================================================
 # START
@@ -80,6 +81,15 @@ done
 printfc "$BLUE" "\n>Linking Configuration Files\n"
 
 _link_dotfiles "$CONFIG_PATH"
+for rel in "${_DOT_DISCARDED[@]}"; do
+    printfc "$YELLOW" "Backup already exists, discarding current file: %s" "$rel"
+done
+for rel in "${_DOT_BACKED_UP[@]}"; do
+    printfc "$YELLOW" "Backed up existing file: %s -> %s.bak" "$rel" "$rel"
+done
+for rel in "${_DOT_LINKED[@]}"; do
+    printfc "$GREEN" "Linked: %s" "$rel"
+done
 
 # ==============================================================================
 # 2b. EXPORT GLOBAL CONFIG PATH SYSTEM-WIDE
@@ -217,40 +227,25 @@ fi
 
 printfc "$BLUE" "\n>Downloading Nerd Font\n"
 
-FONT_DIR="$HOME/.config/termux-config-files/fonts"
-FONT_FILE="$FONT_DIR/MartianMonoNerdFontMono-Regular.ttf"
-FONT_DEST="$HOME/.termux/font.ttf"
-FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/MartianMono.tar.xz"
-
-mkdir -p "$FONT_DIR"
-
-if [ ! -f "$FONT_FILE" ]; then
-    printfc "$YELLOW" "Downloading Nerd Font..."
-    FONT_TMP=$(mktemp -d)
-    if curl -fsSL "$FONT_URL" -o "$FONT_TMP/MartianMono.tar.xz"; then
-        tar -xf "$FONT_TMP/MartianMono.tar.xz" -C "$FONT_TMP"
-        EXTRACTED=$(find "$FONT_TMP" -name "MartianMonoNerdFontMono-Regular.ttf" | head -n1)
-        if [ -n "$EXTRACTED" ]; then
-            cp "$EXTRACTED" "$FONT_FILE"
-            printfc "$GREEN" "Font cached."
-        else
-            printfc "$RED" "Font asset not found."
-            rm -rf "$FONT_TMP"
-            exit 1
-        fi
-    else
+_font_setup
+case $? in
+    0)
+        printfc "$GREEN" "Font cached."
+        printfc "$GREEN" "Font linked."
+        ;;
+    1)
+        printfc "$GREEN" "Font already cached."
+        printfc "$GREEN" "Font linked."
+        ;;
+    2)
         printfc "$RED" "Download failed. Check internet."
-        rm -rf "$FONT_TMP"
         exit 1
-    fi
-    rm -rf "$FONT_TMP"
-else
-    printfc "$GREEN" "Font already cached."
-fi
-
-rm -f "$FONT_DEST"
-ln -s "$FONT_FILE" "$FONT_DEST"
-printfc "$GREEN" "Font linked."
+        ;;
+    3)
+        printfc "$RED" "Font asset not found."
+        exit 1
+        ;;
+esac
 
 # ==============================================================================
 # DONE

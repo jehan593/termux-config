@@ -35,6 +35,15 @@ read -r confirm
 printfc "$BLUE" "\n>Removing Symlinks\n"
 
 _unlink_dotfiles "$CONFIG_PATH"
+for link in "${_DOT_REMOVED[@]}"; do
+    printfc "$GREEN" "Removed: %s" "$link"
+done
+for link in "${_DOT_SKIPPED[@]}"; do
+    printfc "$YELLOW" "Skipped: %s" "$link"
+done
+for rel in "${_DOT_RESTORED[@]}"; do
+    printfc "$GREEN" "Restored backup: %s" "$rel"
+done
 
 if [ -L "$HOME/.termux/font.ttf" ]; then
     rm -f "$HOME/.termux/font.ttf"

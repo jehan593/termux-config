@@ -1,18 +1,15 @@
 # ==============================================================================
-# DEPENDENCY CHECK — requires printfc and NORD_RED
+# DEPENDENCY CHECK — silent: communicates via return code and _MISSING_DEPS,
+# callers own presentation.
 # ==============================================================================
 
-_test_dependencies() {
-    local missing=()
-    for cmd in "$@"; do
-        command -v "$cmd" &>/dev/null || missing+=("$cmd")
-    done
+_MISSING_DEPS=()
 
-    if [ ${#missing[@]} -gt 0 ]; then
-        for app in "${missing[@]}"; do
-            printfc "$NORD_RED" "Missing dependency: %s" "$app"
-        done
-        return 1
-    fi
-    return 0
+_test_dependencies() {
+    _MISSING_DEPS=()
+    local cmd
+    for cmd in "$@"; do
+        command -v "$cmd" &>/dev/null || _MISSING_DEPS+=("$cmd")
+    done
+    [ ${#_MISSING_DEPS[@]} -eq 0 ]
 }

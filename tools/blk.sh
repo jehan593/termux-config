@@ -6,7 +6,10 @@ source "$TERMUX_CONFIG_PATH/helpers/colors-nord.sh"
 source "$TERMUX_CONFIG_PATH/helpers/printer.sh"
 source "$TERMUX_CONFIG_PATH/helpers/dep-checker.sh"
 source "$TERMUX_CONFIG_PATH/helpers/blk-helper.sh"
-_test_dependencies "fzf" "am" "cmd" || exit 1
+if ! _test_dependencies "fzf" "am" "cmd"; then
+    printfc "$NORD_RED" "Missing dependencies: %s" "${_MISSING_DEPS[*]}"
+    exit 1
+fi
 
 CONFIG_DIR="$HOME/.config/termux-config-files/blk"
 CONFIG_FILE="$CONFIG_DIR/config"

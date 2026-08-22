@@ -20,7 +20,7 @@ Since there's no automated test suite, verify changes to shell scripts with `bas
 ## Architecture
 
 **Two-layer script structure:**
-- `helpers/*.sh` — sourced libraries, never executed directly. Each helper is named after what it backs (e.g. `wpm-helper.sh` backs `tools/wpm.sh`) and its functions are prefixed `_` (e.g. `_remove_wpm_tunnel`, `_blk_send_intent`). Helpers are shared between a `tools/*.sh` script and `reset.sh`, so the removal logic lives in exactly one place.
+- `helpers/*.sh` — sourced libraries, never executed directly. Each helper is named after what it backs (e.g. `wpm-helper.sh` backs `tools/wpm.sh`) and its functions are prefixed `_` (e.g. `_remove_wpm_tunnel`, `_blk_send_intent`). Helpers are shared between a `tools/*.sh` script and `reset.sh`, so the removal logic lives in exactly one place. Helpers are silent: they communicate via return codes and result variables (`_MISSING_DEPS`, `_DOT_LINKED`, ...) while callers own all colored output — necessary because `setup.sh`/`reset.sh` and `.bashrc`/`tools/*` use different palettes.
 - `tools/*.sh` — user-facing CLIs. `setup.sh` symlinks every file under `tools/` into `$PREFIX/bin/<name>` (stripping `.sh`), so `tools/wpm.sh` becomes the `wpm` command, `tools/blk.sh` becomes `blk`, etc. Each follows the same `case "$1" in ...) ;; esac` subcommand-router pattern with a bare `_test_dependencies` guard near the top.
 
 **Two color palettes, chosen by what's running when:**
