@@ -230,11 +230,11 @@ printfc "$BLUE" "\n>Downloading Nerd Font\n"
 _font_setup
 case $? in
     0)
-        printfc "$GREEN" "Font cached."
+        printfc "$GREEN" "Font downloaded."
         printfc "$GREEN" "Font linked."
         ;;
     1)
-        printfc "$GREEN" "Font already cached."
+        printfc "$GREEN" "Font already up to date."
         printfc "$GREEN" "Font linked."
         ;;
     2)

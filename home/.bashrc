@@ -122,10 +122,13 @@ upfont() {
 
     printfc "$NORD_BLUE" "\n>Updating Nerd Font\n"
     local rc=0
-    _font_setup --force || rc=$?
+    _font_setup || rc=$?
     case "$rc" in
         0)
             printfc "$NORD_GREEN" "Font updated."
+            ;;
+        1)
+            printfc "$NORD_GREEN" "Font already up to date."
             ;;
         2)
             printfc "$NORD_RED" "Download failed. Check internet."
