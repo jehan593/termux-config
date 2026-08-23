@@ -105,9 +105,9 @@ upp() {
 upall() {
     printfc "$NORD_BLUE" "\n>Upgrading Packages\n"
     upp
+    upfont
     printfc "$NORD_BLUE" "\n>Syncing Config\n"
     upc
-    upfont
 }
 
 upc() {
