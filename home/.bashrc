@@ -79,17 +79,32 @@ sys() {
 }
 
 cup() {
+    source "$TERMUX_CONFIG_PATH/helpers/font.sh"
+
     pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1
     local upgradable=$(apt list --upgradable 2>/dev/null | grep '\[upgradable')
 
     if [ -z "$upgradable" ]; then
-        printfc "$NORD_GREEN" "Up to date."
+        printfc "$NORD_GREEN" "Packages: up to date."
     else
         printfc "$NORD_YELLOW" "\nUpgradable Packages:"
         echo "$upgradable" | awk -F'/' '{print $1}' | while read -r pkg; do
             printfc "$NORD_SNOW_1" "- %s" "$pkg"
         done
     fi
+
+    if _font_check; then
+        printfc "$NORD_YELLOW" "Font: update available."
+    else
+        printfc "$NORD_GREEN" "Font: up to date."
+    fi
+
+    git -C "$TERMUX_CONFIG_PATH" fetch --quiet 2>/dev/null
+    local behind=$(git -C "$TERMUX_CONFIG_PATH" rev-list --count 'HEAD..@{u}' 2>/dev/null)
+    case "$behind" in
+        ''|0) printfc "$NORD_GREEN" "Config: up to date." ;;
+        *)    printfc "$NORD_YELLOW" "Config: %s new commit(s). Run 'upc'." "$behind" ;;
+    esac
     echo ""
 }
 
