@@ -58,7 +58,7 @@ fi
 # 1. DEPENDENCIES
 # ==============================================================================
 
-printfc "$BLUE" "\n>Installing Dependencies\n"
+printfc "$BLUE" "\n>Installing Dependencies"
 
 pkg update -y -o Dpkg::Use-Pty=0
 
@@ -78,7 +78,7 @@ done
 # 2. DOTFILE LINKS
 # ==============================================================================
 
-printfc "$BLUE" "\n>Linking Configuration Files\n"
+printfc "$BLUE" "\n>Linking Configuration Files"
 
 _link_dotfiles "$CONFIG_PATH"
 for rel in "${_DOT_DISCARDED[@]}"; do
@@ -133,7 +133,7 @@ fi
 # 4. SERVICE & BOOT SETUP
 # ==============================================================================
 
-printfc "$BLUE" "\n>Services & Boot Setup\n"
+printfc "$BLUE" "\n>Services & Boot Setup"
 
 mkdir -p "$HOME/.termux/boot"
 
@@ -171,7 +171,7 @@ fi
 # 5. GLOBAL SCRIPTS
 # ==============================================================================
 
-printfc "$BLUE" "\n>Mapping Global Scripts\n"
+printfc "$BLUE" "\n>Mapping Global Scripts"
 
 for main_script in "$CONFIG_PATH"/tools/*.sh; do
     name="$(basename "$main_script" .sh)"
@@ -225,7 +225,7 @@ fi
 # 8. FONT
 # ==============================================================================
 
-printfc "$BLUE" "\n>Downloading Nerd Font\n"
+printfc "$BLUE" "\n>Downloading Nerd Font"
 
 _font_setup
 case $? in

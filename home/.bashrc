@@ -81,7 +81,7 @@ sys() {
 cup() {
     source "$TERMUX_CONFIG_PATH/helpers/font.sh"
 
-    printfc "$NORD_BLUE" "\n>Checking Packages\n"
+    printfc "$NORD_BLUE" "\nPackages"
     pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1
     local upgradable=$(apt list --upgradable 2>/dev/null | grep '\[upgradable')
 
@@ -89,18 +89,18 @@ cup() {
         printfc "$NORD_GREEN" "Up to date."
     else
         echo "$upgradable" | awk -F'/' '{print $1}' | while read -r pkg; do
-            printfc "$NORD_SNOW_1" "- %s" "$pkg"
+            printfc "$NORD_YELLOW" "%s" "$pkg"
         done
     fi
 
-    printfc "$NORD_BLUE" "\n>Checking Font\n"
+    printfc "$NORD_BLUE" "\n>Martian Mono Font"
     if _font_check; then
         printfc "$NORD_YELLOW" "Update available."
     else
         printfc "$NORD_GREEN" "Up to date."
     fi
 
-    printfc "$NORD_BLUE" "\n>Checking Config\n"
+    printfc "$NORD_BLUE" "\n>Termux Config"
     git -C "$TERMUX_CONFIG_PATH" fetch --quiet 2>/dev/null
     local behind=$(git -C "$TERMUX_CONFIG_PATH" rev-list --count 'HEAD..@{u}' 2>/dev/null)
     case "$behind" in
@@ -120,10 +120,10 @@ upp() {
 }
 
 upall() {
-    printfc "$NORD_BLUE" "\n>Upgrading Packages\n"
+    printfc "$NORD_BLUE" "\n>Upgrading Packages"
     upp
     upfont
-    printfc "$NORD_BLUE" "\n>Syncing Config\n"
+    printfc "$NORD_BLUE" "\n>Syncing Config"
     upc
 }
 
@@ -137,7 +137,7 @@ upc() {
 upfont() {
     source "$TERMUX_CONFIG_PATH/helpers/font.sh"
 
-    printfc "$NORD_BLUE" "\n>Updating Nerd Font\n"
+    printfc "$NORD_BLUE" "\n>Updating Nerd Font"
     local rc=0
     _font_setup || rc=$?
     case "$rc" in

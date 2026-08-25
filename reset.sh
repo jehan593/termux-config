@@ -32,7 +32,7 @@ read -r confirm
 # 1. REMOVE SYMLINKS
 # ==============================================================================
 
-printfc "$BLUE" "\n>Removing Symlinks\n"
+printfc "$BLUE" "\n>Removing Symlinks"
 
 _unlink_dotfiles "$CONFIG_PATH"
 for link in "${_DOT_REMOVED[@]}"; do
@@ -89,7 +89,7 @@ fi
 # 3. WPM BACKUP AND REMOVAL
 # ==============================================================================
 
-printfc "$BLUE" "\n>Wireproxy Manager(wpm) Removal\n"
+printfc "$BLUE" "\n>Wireproxy Manager(wpm) Removal"
 
 declare -a services=("$SERVICE_BASE_DIR"/*-wpm)
 if [[ ! -d "${services[0]}" ]]; then
@@ -118,7 +118,7 @@ fi
 # 4. YEARWALL REMOVAL
 # ==============================================================================
 
-printfc "$BLUE" "\n>Lock Screen Year Progress Wallpaper Setup(yearwall) Removal\n"
+printfc "$BLUE" "\n>Lock Screen Year Progress Wallpaper Setup(yearwall) Removal"
 
 YEARWALL_DIR="$HOME/.config/termux-config-files/yearwall"
 YEARWALL_BOOT_SCRIPT="$HOME/.termux/boot/50-yearwall.sh"
@@ -250,7 +250,7 @@ fi
 # 6b. BLK APP BLOCKER CLEANUP & RESTORATION
 # ==============================================================================
 
-printfc "$BLUE" "\n>BLK App Blocker Cleanup\n"
+printfc "$BLUE" "\n>BLK App Blocker Cleanup"
 
 BLK_CONFIG_DIR="$HOME/.config/termux-config-files/blk"
 BLOCKED_FILE="$BLK_CONFIG_DIR/blocked_pkgs"
