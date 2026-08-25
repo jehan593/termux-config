@@ -81,7 +81,7 @@ sys() {
 cup() {
     source "$TERMUX_CONFIG_PATH/helpers/font.sh"
 
-    printfc "$NORD_BLUE" "\nPackages"
+    printfc "$NORD_BLUE" "\n>Packages"
     pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1
     local upgradable=$(apt list --upgradable 2>/dev/null | grep '\[upgradable')
 
