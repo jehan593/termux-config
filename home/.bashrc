@@ -91,6 +91,8 @@ cup() {
         echo "$upgradable" | awk -F'/' '{print $1}' | while read -r pkg; do
             printfc "$NORD_YELLOW" "%s" "$pkg"
         done
+        local count=$(echo "$upgradable" | grep -c '\[upgradable')
+        printfc "$NORD_YELLOW" "\n%s update(s) available." "$count"
     fi
 
     printfc "$NORD_BLUE" "\n>Martian Mono Font"
