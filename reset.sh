@@ -11,7 +11,6 @@ source "$CONFIG_PATH/helpers/pkg-list.sh"
 source "$CONFIG_PATH/helpers/dotfiles-helper.sh"
 source "$CONFIG_PATH/helpers/wpm-helper.sh"
 source "$CONFIG_PATH/helpers/yearwall-helper.sh"
-source "$CONFIG_PATH/helpers/blk-helper.sh"
 
 SERVICE_BASE_DIR="$PREFIX/var/service"
 WPM_CONFIG_DIR="$HOME/.config/termux-config-files/wpm"
@@ -244,69 +243,6 @@ printfc "$BLUE" "\n>Neovim Cleanup"
 if [ -d "$HOME/.config/nvim" ] && [ -z "$(ls -A "$HOME/.config/nvim")" ]; then
     rmdir "$HOME/.config/nvim"
     printfc "$GREEN" "Removed empty nvim directory."
-fi
-
-# ==============================================================================
-# 6b. BLK APP BLOCKER CLEANUP & RESTORATION
-# ==============================================================================
-
-printfc "$BLUE" "\n>BLK App Blocker Cleanup"
-
-BLK_CONFIG_DIR="$HOME/.config/termux-config-files/blk"
-BLOCKED_FILE="$BLK_CONFIG_DIR/blocked_pkgs"
-CONFIG_FILE="$BLK_CONFIG_DIR/config"
-CONTACTS_STATE_FILE="$BLK_CONFIG_DIR/wa_contacts_state"
-
-if [ -d "$BLK_CONFIG_DIR" ]; then
-    # Load API Key if available to allow intent broadcast
-    [ -f "$CONFIG_FILE" ] && source "$CONFIG_FILE"
-
-    if [ -s "$BLOCKED_FILE" ] && [ -n "$API_KEY" ]; then
-        echo ""
-        printfc "$YELLOW" "Sending unblock intents..."
-        unblock_failed=0
-        while IFS= read -r pkg; do
-            [ -z "$pkg" ] && continue
-            if _blk_send_intent "$API_KEY" "UNSUSPEND" "$pkg"; then
-                echo "-> $pkg"
-            else
-                printfc "$RED" "-> %s (broadcast failed)" "$pkg"
-                unblock_failed=1
-            fi
-        done < "$BLOCKED_FILE"
-        if [ "$unblock_failed" -eq 0 ]; then
-            printfc "$GREEN" "All apps unblocked successfully."
-        else
-            printfc "$RED" "Some unblock intents failed to dispatch. Check manually before assuming apps are unblocked."
-        fi
-        echo ""
-    fi
-
-    if [ -f "$CONTACTS_STATE_FILE" ] && [ -n "$API_KEY" ] && [ "$(cat "$CONTACTS_STATE_FILE")" = "denied" ]; then
-        printfc "$YELLOW" "Restoring WhatsApp Contacts permission..."
-        if _blk_send_intent "$API_KEY" "SET_PERMISSION_GRANTED" "com.whatsapp" "android.permission.READ_CONTACTS"; then
-            printfc "$GREEN" "WhatsApp Contacts permission restored."
-        else
-            printfc "$RED" "Failed to restore WhatsApp Contacts permission. Check manually."
-        fi
-        echo ""
-    fi
-
-    if [ -n "$API_KEY" ]; then
-        printfc -n "$YELLOW" "Delete the API key? [y/N]: "
-        read -r confirm
-        if [[ "$confirm" =~ ^[Yy]$ ]]; then
-            rm -rf "$BLK_CONFIG_DIR"
-            printfc "$GREEN" "BLK local configuration data purged."
-        else
-            rm -f "$BLOCKED_FILE"
-            printfc "$GREEN" "Blocked app list cleared. API key preserved."
-        fi
-    else
-        printfc "$YELLOW" "No API key found. Nothing to clean up."
-    fi
-else
-    printfc "$YELLOW" "No BLK config directory found."
 fi
 
 # ==============================================================================

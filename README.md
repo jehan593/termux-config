@@ -8,13 +8,12 @@ Personal dotfiles and setup automation for [Termux](https://termux.dev/), the An
 - **Nord theme** — truecolor Termux styling and matching wallpaper
 - **Boot & services** — `termux-services` boot scripts enabled on setup
 - **Custom tools** (installed to `$PREFIX/bin`):
-  - `blk` — app blocker via OwnDroid broadcast intents, with an fzf blocklist manager
   - `wpm` — wireproxy SOCKS5 tunnel manager, run as `runit` services
   - `yearwall` — daily-updating lock-screen wallpaper showing year progress as a dot grid
 
 ## Requirements
 
-Termux on Android. `setup.sh` installs its own package dependencies; some tools need companion apps (e.g. OwnDroid for `blk`).
+Termux on Android. `setup.sh` installs its own package dependencies; some tools need companion apps.
 
 ## Setup
 
