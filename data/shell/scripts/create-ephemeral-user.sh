@@ -57,14 +57,9 @@ if [ -z "$new_uid" ]; then
 fi
 printfc "$NORD_GREEN" "Created user: id=%s (%s)" "$new_uid" "$label"
 
-# 2. Skip the setup wizard for the new user. A freshly created user isn't
-#    started yet, so its secure-settings writes wouldn't persist — start it
-#    first, then mark setup complete and hide the wizard, plus drop a global
-#    provisioning flag as a safety net.
+# 2. Skip the setup wizard for the new user: mark setup complete and hide the
+#    wizard, plus drop a global provisioning flag as a safety net.
 printfc "$NORD_BLUE" "\n>Skipping setup wizard"
-
-_shell_cmd "am start-user -w $new_uid"
-sleep 2
 
 _shell_cmd "settings put secure user_setup_complete 1 --user $new_uid"
 _shell_cmd "settings put global device_provisioned 1"
