@@ -61,7 +61,7 @@ printfc "$NORD_GREEN" "Setup wizard marked as complete for user %s." "$new_uid"
 printfc "$NORD_BLUE" "\n>Installing packages into user %s" "$new_uid"
 for pkg in $PKGS_TO_INSTALL; do
     if _shell_cmd "pm list packages --user 0 $pkg" | grep -q "package:$pkg"; then
-        if _shell_cmd "pm install-existing --user $new_uid $pkg" | grep -qi "Success"; then
+        if _shell_cmd "pm install-existing --user $new_uid $pkg" | grep -qi "installed for user"; then
             printfc "$NORD_GREEN" "Installed: %s" "$pkg"
         else
             printfc "$NORD_RED" "Failed to install %s for user %s." "$pkg" "$new_uid"
