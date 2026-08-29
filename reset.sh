@@ -11,6 +11,7 @@ source "$CONFIG_PATH/helpers/pkg-list.sh"
 source "$CONFIG_PATH/helpers/dotfiles-helper.sh"
 source "$CONFIG_PATH/helpers/wpm-helper.sh"
 source "$CONFIG_PATH/helpers/yearwall-helper.sh"
+source "$CONFIG_PATH/helpers/shell-helper.sh"
 
 SERVICE_BASE_DIR="$PREFIX/var/service"
 WPM_CONFIG_DIR="$HOME/.config/termux-config-files/wpm"
@@ -114,10 +115,27 @@ else
 fi
 
 # ==============================================================================
-# 4. YEARWALL REMOVAL
+# 3b. SHELL (SHIZUKU) REMOVAL
 # ==============================================================================
 
-printfc "$BLUE" "\n>Lock Screen Year Progress Wallpaper Setup(yearwall) Removal"
+printfc "$BLUE" "\n>Shizuku Shell (shell) Removal"
+
+if [ -f "$SHELL_RISH" ] || [ -f "$SHELL_DEX" ]; then
+    printfc -n "$YELLOW" "Remove the Shizuku rish binaries from %s? [y/N]: " "$PREFIX/bin"
+    read -r confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        _remove_shell_binaries
+        printfc "$GREEN" "Shizuku rish binaries removed."
+    else
+        printfc "$YELLOW" "Skipped rish binary removal."
+    fi
+else
+    printfc "$YELLOW" "No Shizuku rish binaries found."
+fi
+
+# ==============================================================================
+# 4. YEARWALL REMOVAL
+# ==============================================================================
 
 YEARWALL_DIR="$HOME/.config/termux-config-files/yearwall"
 YEARWALL_BOOT_SCRIPT="$HOME/.termux/boot/50-yearwall.sh"

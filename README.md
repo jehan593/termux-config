@@ -10,6 +10,7 @@ Personal dotfiles and setup automation for [Termux](https://termux.dev/), the An
 - **Custom tools** (installed to `$PREFIX/bin`):
   - `wpm` — wireproxy SOCKS5 tunnel manager, run as `runit` services
   - `yearwall` — daily-updating lock-screen wallpaper showing year progress as a dot grid
+  - `shell` — Shizuku-backed ADB shell: `shell setup` to request permission, bare `shell` to enter the shell, `shell scripts` to run pre-built ADB scripts
 
 ## Requirements
 
