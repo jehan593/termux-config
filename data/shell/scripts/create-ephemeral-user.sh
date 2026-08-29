@@ -26,8 +26,8 @@ _verify_shizuku || {
 
 PKGS_TO_INSTALL="com.aurora.store"
 
-# 0. Limit to a single ephemeral user at a time: refuse to create another if
-#    one already exists (from an earlier run of this tool).
+# 0. Reuse a stable label so any earlier ephemeral user is easy to spot in the
+#    user list; more than one can exist at once.
 BASE_USER_LABEL="ephemeral"
 label="$BASE_USER_LABEL"
 
@@ -38,9 +38,7 @@ if echo "$existing" | grep -qE "\{[0-9]+:${BASE_USER_LABEL}[^:]*:"; then
         | head -1 \
         | cut -d: -f2)
     printfc "$NORD_YELLOW" "An ephemeral user already exists (%s)." "$existing_name"
-    printfc "$NORD_RED" "Only one ephemeral user is allowed at a time; remove it first, then re-run."
     echo ""
-    exit 1
 fi
 
 printfc "$NORD_BLUE" "\n>Creating ephemeral user: %s" "$label"

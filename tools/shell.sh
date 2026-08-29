@@ -185,15 +185,19 @@ run_scripts() {
 case "$1" in
     setup)   setup_shell ;;
     scripts) run_scripts ;;
-    *)
+    ""|open)
         if _verify_shizuku; then
             open_shell
         else
-            echo "setup     Verify/request Shizuku permission and install rish"
-            echo "scripts   Pick and run a pre-built ADB script (fzf)"
-            echo ""
             printfc "$NORD_RED" "Shizuku shell unavailable. Run 'shell setup' first."
             exit 1
         fi
+        ;;
+    *)
+        printfc "$NORD_SNOW_1" "setup          Verify/request Shizuku permission and install rish"
+        printfc "$NORD_SNOW_1" "scripts        Pick and run a pre-built ADB script (fzf)"
+        printfc "$NORD_SNOW_1" "open           Enter the Shizuku ADB shell (default)"
+        echo ""
+        exit 1
         ;;
 esac
