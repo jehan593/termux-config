@@ -25,14 +25,18 @@ _verify_shizuku() {
     if [ ! -x "$SHELL_RISH" ] || [ ! -f "$SHELL_DEX" ]; then
         return 1
     fi
-    local uid
-    uid=$("$SHELL_RISH" -c 'id -u' 2>&1)
+    local uid out
+    # Although `rish -c` reports via exit code, its stdout carries a banner
+    # ("Entering shell...") before the real output, so pull the uid off a line
+    # that is exactly a number instead of comparing the whole stream.
+    out=$("$SHELL_RISH" -c 'id -u' 2>&1)
+    uid=$(printf '%s\n' "$out" | sed -n 's/^\([0-9][0-9]*\)$/\1/p' | tail -1)
     if [[ "$uid" == "2000" ]]; then
         _SHELL_OK=1
         _SHELL_UID="$uid"
         return 0
     fi
-    _SHELL_ERR="$uid"
+    _SHELL_ERR="$out"
     return 1
 }
 
