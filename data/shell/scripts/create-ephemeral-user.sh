@@ -40,9 +40,9 @@ done
 printfc "$NORD_BLUE" "\n>Creating ephemeral user: %s" "$label"
 
 # 1. Create the ephemeral secondary user; the returned line is
-#    "Success: created user <id>".
+#    "Entering shell..." (banner) then "Success: created user id <id>".
 create_out=$(_shell_cmd "pm create-user --ephemeral $label")
-new_uid=$(echo "$create_out" | sed -n 's/.*[Uu]ser \([0-9][0-9]*\).*/\1/p' | tail -1)
+new_uid=$(echo "$create_out" | sed -n 's/.*user id \([0-9][0-9]*\).*/\1/p' | tail -1)
 
 if [ -z "$new_uid" ]; then
     printfc "$NORD_RED" "Failed to create user. Output: %s" "$create_out"
