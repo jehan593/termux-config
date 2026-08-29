@@ -35,9 +35,9 @@ label="$BASE_USER_LABEL"
 existing=$(_shell_cmd "pm list users")
 if echo "$existing" | grep -qE "\{[0-9]+:${BASE_USER_LABEL}[^:]*:"; then
     existing_name=$(printf '%s\n' "$existing" \
-        | grep -oE "\{[0-9]+:${BASE_USER_LABEL}[^:]*:" \
+        | grep -oE "[0-9]+:${BASE_USER_LABEL}[^:]*" \
         | head -1 \
-        | sed -E "s/\{[0-9]+:([^:]+):.*/\2/")
+        | cut -d: -f2)
     printfc "$NORD_YELLOW" "An ephemeral user already exists (%s)." "$existing_name"
     printfc "$NORD_RED" "Only one ephemeral user is allowed at a time; remove it first, then re-run."
     echo ""
