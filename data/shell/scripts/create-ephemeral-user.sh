@@ -3,9 +3,8 @@
 # create-ephemeral-user — pre-built ADB script for `shell scripts`
 #
 # Creates an ephemeral (auto-removed on reboot) secondary user with the
-# SetupWizard skipped, then installs com.aurora.store and helium314.keyboard
-# into that user — but ONLY if each app is already installed in the current
-# (owner) user; otherwise that app is skipped automatically.
+# SetupWizard skipped, then installs com.aurora.store — but ONLY if it's
+# already installed in the current (owner) user; otherwise it's skipped.
 #
 # Uses the Shizuku-backed `rish` remote shell, so Shizuku must be running and
 # `shell setup` must have succeeded first.
@@ -25,7 +24,7 @@ _verify_shizuku || {
     exit 1
 }
 
-PKGS_TO_INSTALL="com.aurora.store helium314.keyboard"
+PKGS_TO_INSTALL="com.aurora.store"
 
 # 0. Limit to a single ephemeral user at a time: refuse to create another if
 #    one already exists (from an earlier run of this tool).
