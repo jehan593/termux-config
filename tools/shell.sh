@@ -13,7 +13,6 @@ if ! _test_dependencies "fzf"; then
 fi
 
 SCRIPTS_DIR="$TERMUX_CONFIG_PATH/data/shell/scripts"
-SHIZUKU_PKG="moe.shizuku.privileged.api"
 
 # --- Actions ---
 
@@ -28,59 +27,103 @@ open_shell() {
     "$SHELL_RISH"
 }
 
-# Verify rish is in place and that Shizuku is running + granted; if not, launch
-# the Shizuku grant flow and re-verify.
+# Copy the two exported Shizuku files out of ~/storage/shared/Download/rish/
+# into $PREFIX/bin, fixing the application id and permissions so `rish` works
+# with Termux (uid 2000). Returns 0 on success.
+install_rish() {
+    local export_dir rish_src dex_src
+
+    printfc "$NORD_BLUE" "\n>Locating Shizuku files"
+    printfc "$NORD_SNOW_1" "Export them first: Shizuku app → 'Use Shizuku in terminal apps' → 'Export files'."
+    printfc "$NORD_SNOW_1" "Put 'rish' and 'rish_shizuku.dex' into a folder named 'rish' in Downloads."
+    echo ""
+
+    export_dir="$HOME/storage/shared/Download/rish"
+    if [ ! -d "$export_dir" ]; then
+        printfc "$NORD_RED" "Folder not found: %s" "$export_dir"
+        printfc "$NORD_YELLOW" "Create it and drop the two exported files in there, then re-run 'shell setup'."
+        echo ""
+        return 1
+    fi
+
+    rish_src="$export_dir/rish"
+    dex_src="$export_dir/rish_shizuku.dex"
+    if [ ! -f "$rish_src" ] || [ ! -f "$dex_src" ]; then
+        printfc "$NORD_RED" "Expected 'rish' and 'rish_shizuku.dex' in %s" "$export_dir"
+        echo ""
+        return 1
+    fi
+
+    # 1. Point the rish script at Termux (exported copy may carry another app id).
+    printfc "$NORD_BLUE" "\n>Installing"
+    if grep -qE 'PKG=.+' "$rish_src"; then
+        sed -i -E 's/PKG=.+/PKG="com.termux"/' "$rish_src"
+        printfc "$NORD_YELLOW" "Set application id to com.termux in rish."
+    fi
+
+    # 2. Copy both files into $PREFIX/bin.
+    cp "$rish_src" "$SHELL_RISH" || { printfc "$NORD_RED" "Failed to copy rish."; return 1; }
+    cp "$dex_src" "$SHELL_DEX" || { printfc "$NORD_RED" "Failed to copy rish_shizuku.dex."; return 1; }
+    chmod 755 "$SHELL_RISH"
+
+    # 3. On Android 14+ app_process refuses to load a writable dex, so drop
+    #    the write bit (Termux owns this file and is allowed to).
+    chmod 444 "$SHELL_DEX" 2>/dev/null
+
+    printfc "$NORD_GREEN" "Installed rish and rish_shizuku.dex into %s." "$PREFIX/bin"
+    return 0
+}
+
+# Makes sure the Shizuku rish binaries are in place and that the Shizuku server
+# is running. Skips the copy prompt if the files are already installed.
 setup_shell() {
     printfc "$NORD_BLUE" "\n>Preflight"
 
-    if [ ! -x "$SHELL_RISH" ]; then
-        printfc "$NORD_RED" "rish not found at %s." "$SHELL_RISH"
-        printfc "$NORD_YELLOW" "Import it: Shizuku app → 'Use Shizuku in terminal apps' → 'Export files'."
-        printfc "$NORD_YELLOW" "Copy the exported 'rish' and 'rish_shizuku.dex' into %s ." "$PREFIX/bin"
-        return 1
+    local installed=0
+    if [ -x "$SHELL_RISH" ] && [ -f "$SHELL_DEX" ]; then
+        installed=1
     fi
-    if [ ! -f "$SHELL_DEX" ]; then
-        printfc "$NORD_RED" "rish_shizuku.dex not found at %s." "$SHELL_DEX"
-        return 1
+
+    if [ "$installed" -eq 0 ]; then
+        printfc "$NORD_YELLOW" "Shizuku rish binaries not installed."
+        printfc -n "$NORD_SNOW_1" "Install them now? [Y/n]: "
+        read -r confirm
+        if [[ "$confirm" =~ ^[Nn]$ ]]; then
+            printfc "$NORD_YELLOW" "Skipped. Run 'shell setup' again when ready."
+            echo ""
+            return 1
+        fi
+        install_rish || { echo ""; return 1; }
+    else
+        printfc "$NORD_GREEN" "rish already installed."
     fi
-    printfc "$NORD_GREEN" "rish binaries present."
 
     if _verify_shizuku; then
-        printfc "$NORD_GREEN" "Shizuku running with shell permission (uid=%s)." "$_SHELL_UID"
+        printfc "$NORD_GREEN" "Shizuku running — ADB shell available (uid=%s)." "$_SHELL_UID"
         printfc "$NORD_GREEN" "Setup complete. Run 'shell' to enter the ADB shell."
         echo ""
         return 0
     fi
 
-    printfc "$NORD_YELLOW" "Shizuku not running or shell permission not granted yet."
-    printfc -n "$NORD_SNOW_1" "Open the Shizuku app to start the server and grant permission? [Y/n]: "
-    read -r confirm
-    if [[ "$confirm" =~ ^[Nn]$ ]]; then
-        printfc "$NORD_YELLOW" "Skipped. Run 'shell setup' again after granting permission."
-        echo ""
-        return 1
-    fi
-
-    printfc "$NORD_SNOW_1" "Opening Shizuku…"
-    if command -v am >/dev/null 2>&1; then
-        am start -n "$SHIZUKU_PKG/moe.shizuku.privileged.api.MainActivity" >/dev/null 2>&1
-    elif command -v termux-open >/dev/null 2>&1; then
-        termux-open "app://$SHIZUKU_PKG" >/dev/null 2>&1
-    else
-        printfc "$NORD_YELLOW" "Please open the Shizuku app manually."
-    fi
-
-    printfc "$NORD_SNOW_1" "In Shizuku: start the server, then enable/confirm 'Use Shizuku in terminal apps' for Termux."
-    printfc -n "$NORD_SNOW_1" "Press Enter once granted…"
+    # There's no per-app permission inside Shizuku to grant here — once the
+    # server is running, rish just works with whatever app id is baked into the
+    # rish script. The only remaining step is starting the server.
+    printfc "$NORD_YELLOW" "rish is installed but the Shizuku server is not responding."
+    printfc "$NORD_SNOW_1" "Open the Shizuku app and tap the 'Start' button to launch the server."
+    printfc -n "$NORD_SNOW_1" "Press Enter after starting it…"
     read -r
 
     if _verify_shizuku; then
-        printfc "$NORD_GREEN" "Shizuku running with shell permission (uid=%s)." "$_SHELL_UID"
+        printfc "$NORD_GREEN" "Shizuku running — ADB shell available (uid=%s)." "$_SHELL_UID"
         printfc "$NORD_GREEN" "Setup complete. Run 'shell' to enter the ADB shell."
+        echo ""
+        return 0
     else
-        printfc "$NORD_RED" "Still unavailable. Confirm Shizuku is running and Termux is granted, then retry."
+        printfc "$NORD_RED" "Still not responding. Confirm the Shizuku server is running, then retry."
+        printfc "$NORD_RED" "ADB (wireless debugging) must be used to start it on unrooted devices."
+        echo ""
+        return 1
     fi
-    echo ""
 }
 
 # Pick and run a pre-built ADB command script.
