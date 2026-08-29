@@ -16,21 +16,23 @@ _shell_cmd() {
 # Verifies the Shizuku-backed shell is reachable and running as the Android
 # `shell` uid (2000), i.e. that the shizuku server is up and Termux has been
 # granted the "Use Shizuku in terminal apps" shell permission.
-# Sets _SHELL_OK=0/1 and _SHELL_UID to the reported uid on success.
-# Callers own all colored output.
+# Sets _SHELL_OK=0/1, _SHELL_UID to the reported uid on success, and _SHELL_ERR
+# to rish's captured stderr on failure (for diagnostics). Callers own output.
 _verify_shizuku() {
     _SHELL_OK=0
     _SHELL_UID=""
+    _SHELL_ERR=""
     if [ ! -x "$SHELL_RISH" ] || [ ! -f "$SHELL_DEX" ]; then
         return 1
     fi
     local uid
-    uid=$(_shell_cmd 'id -u')
+    uid=$("$SHELL_RISH" -c 'id -u' 2>&1)
     if [[ "$uid" == "2000" ]]; then
         _SHELL_OK=1
         _SHELL_UID="$uid"
         return 0
     fi
+    _SHELL_ERR="$uid"
     return 1
 }
 

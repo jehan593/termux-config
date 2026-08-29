@@ -27,6 +27,26 @@ open_shell() {
     "$SHELL_RISH"
 }
 
+# Patch a rish script so its app id points at Termux. Modern exports use
+# `RISH_APPLICATION_ID="PKG"`, older ones a bare `PKG="..."` line — handle both,
+# and both the `PKG` placeholder and an already-set (possibly wrong) value.
+# Returns 1 if no app id line was found to patch.
+_set_app_id() {
+    local file="$1"
+    if grep -q 'RISH_APPLICATION_ID=' "$file"; then
+        sed -i 's/RISH_APPLICATION_ID="[^"]*"/RISH_APPLICATION_ID="com.termux"/' "$file"
+        sed -i "s/RISH_APPLICATION_ID='[^']*'/RISH_APPLICATION_ID='com.termux'/" "$file"
+        printfc "$NORD_YELLOW" "Set RISH_APPLICATION_ID to com.termux in %s." "$(basename "$file")"
+        return 0
+    fi
+    if grep -qE '^\s*PKG=' "$file"; then
+        sed -i 's/^\([[:space:]]*\)PKG="[^"]*"/\1PKG="com.termux"/' "$file"
+        printfc "$NORD_YELLOW" "Set application id to com.termux in %s." "$(basename "$file")"
+        return 0
+    fi
+    return 1
+}
+
 # Copy the two exported Shizuku files out of ~/storage/shared/Download/rish/
 # into $PREFIX/bin, fixing the application id and permissions so `rish` works
 # with Termux (uid 2000). Returns 0 on success.
@@ -54,12 +74,9 @@ install_rish() {
         return 1
     fi
 
-    # 1. Point the rish script at Termux (exported copy may carry another app id).
+    # 1. Point the rish script at Termux.
     printfc "$NORD_BLUE" "\n>Installing"
-    if grep -qE 'PKG=.+' "$rish_src"; then
-        sed -i -E 's/PKG=.+/PKG="com.termux"/' "$rish_src"
-        printfc "$NORD_YELLOW" "Set application id to com.termux in rish."
-    fi
+    _set_app_id "$rish_src"
 
     # 2. Copy both files into $PREFIX/bin.
     cp "$rish_src" "$SHELL_RISH" || { printfc "$NORD_RED" "Failed to copy rish."; return 1; }
@@ -96,6 +113,9 @@ setup_shell() {
         install_rish || { echo ""; return 1; }
     else
         printfc "$NORD_GREEN" "rish already installed."
+        # Re-apply the app id; an earlier broken run may have left the
+        # placeholder (PKG) in place, which makes rish fail to connect.
+        _set_app_id "$SHELL_RISH" || true
     fi
 
     if _verify_shizuku; then
@@ -119,8 +139,12 @@ setup_shell() {
         echo ""
         return 0
     else
-        printfc "$NORD_RED" "Still not responding. Confirm the Shizuku server is running, then retry."
-        printfc "$NORD_RED" "ADB (wireless debugging) must be used to start it on unrooted devices."
+        printfc "$NORD_RED" "Still not responding."
+        [ -n "$_SHELL_ERR" ] && printfc "$NORD_YELLOW" "rish said: %s" "$_SHELL_ERR"
+        printfc "$NORD_RED" "Common causes:"
+        printfc "$NORD_RED" "  - RISH_APPLICATION_ID mismatch (re-run 'shell setup' to fix the id)."
+        printfc "$NORD_RED" "  - The Shizuku server is not running for this app (open Shizuku, start it)."
+        printfc "$NORD_RED" "  - Battery optimization blocking the connection (disable for Termux + Shizuku)."
         echo ""
         return 1
     fi
