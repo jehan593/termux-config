@@ -9,8 +9,10 @@ SHELL_DEX="$PREFIX/bin/rish_shizuku.dex"
 
 # Run a single command inside the Shizuku-backed Android shell.
 # Usage: _shell_cmd '<adb shell command>'
+# Both stdout and stderr pass through (Android shell errors go to stderr, and
+# callers often need them); rish prints an "Entering shell..." banner on stdout.
 _shell_cmd() {
-    "$SHELL_RISH" -c "$1" 2>/dev/null
+    "$SHELL_RISH" -c "$1"
 }
 
 # Verifies the Shizuku-backed shell is reachable and running as the Android

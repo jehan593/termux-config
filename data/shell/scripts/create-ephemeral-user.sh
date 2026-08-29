@@ -27,8 +27,9 @@ _verify_shizuku || {
 
 PKGS_TO_INSTALL="com.aurora.store helium314.keyboard"
 
-# 0. Pick a name that doesn't collide with an existing user (Android requires
-#    user names to be unique), so running this repeatedly always works.
+# 0. Android allows multiple ephemeral users, so on a name collision we create
+#    a uniquely-named one (ephemeral-NNN) rather than removing previous ones.
+#    Name collisions only matter because Android requires distinct user names.
 BASE_USER_LABEL="ephemeral"
 label="$BASE_USER_LABEL"
 existing=$(_shell_cmd "pm list users")
@@ -45,15 +46,25 @@ create_out=$(_shell_cmd "pm create-user --ephemeral $label")
 new_uid=$(echo "$create_out" | sed -n 's/.*user id \([0-9][0-9]*\).*/\1/p' | tail -1)
 
 if [ -z "$new_uid" ]; then
-    printfc "$NORD_RED" "Failed to create user. Output: %s" "$create_out"
+    printfc "$NORD_RED" "Failed to create user: %s" "$create_out"
     exit 1
 fi
 printfc "$NORD_GREEN" "Created user: id=%s (%s)" "$new_uid" "$label"
 
-# 2. Skip the setup wizard for the new user.
+# 2. Skip the setup wizard for the new user. A freshly created user isn't
+#    started yet, so its secure-settings writes wouldn't persist — start it
+#    first, then mark setup complete and hide the wizard, plus drop a global
+#    provisioning flag as a safety net.
 printfc "$NORD_BLUE" "\n>Skipping setup wizard"
+
+_shell_cmd "am start-user -w $new_uid"
+sleep 2
+
 _shell_cmd "settings put secure user_setup_complete 1 --user $new_uid"
 _shell_cmd "settings put global device_provisioned 1"
+_shell_cmd "settings put global setup_wizard_has_run 1"
+_shell_cmd "pm disable-user --user $new_uid com.google.android.setupwizard"
+
 printfc "$NORD_GREEN" "Setup wizard marked as complete for user %s." "$new_uid"
 
 # 3. Install each package into the new user, but only if it already exists in
@@ -61,10 +72,12 @@ printfc "$NORD_GREEN" "Setup wizard marked as complete for user %s." "$new_uid"
 printfc "$NORD_BLUE" "\n>Installing packages into user %s" "$new_uid"
 for pkg in $PKGS_TO_INSTALL; do
     if _shell_cmd "pm list packages --user 0 $pkg" | grep -q "package:$pkg"; then
-        if _shell_cmd "pm install-existing --user $new_uid $pkg" | grep -qi "installed for user"; then
+        install_out=$(_shell_cmd "pm install-existing --user $new_uid $pkg")
+        if printf '%s' "$install_out" | grep -qi "installed for user"; then
             printfc "$NORD_GREEN" "Installed: %s" "$pkg"
         else
             printfc "$NORD_RED" "Failed to install %s for user %s." "$pkg" "$new_uid"
+            printfc "$NORD_YELLOW" "  Output: %s" "$install_out"
         fi
     else
         printfc "$NORD_YELLOW" "Skipped: %s not installed in current user." "$pkg"
