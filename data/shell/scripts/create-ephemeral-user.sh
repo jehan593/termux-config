@@ -27,16 +27,22 @@ _verify_shizuku || {
 
 PKGS_TO_INSTALL="com.aurora.store helium314.keyboard"
 
-# 0. Android allows multiple ephemeral users, so on a name collision we create
-#    a uniquely-named one (ephemeral-NNN) rather than removing previous ones.
-#    Name collisions only matter because Android requires distinct user names.
+# 0. Limit to a single ephemeral user at a time: refuse to create another if
+#    one already exists (from an earlier run of this tool).
 BASE_USER_LABEL="ephemeral"
 label="$BASE_USER_LABEL"
+
 existing=$(_shell_cmd "pm list users")
-while echo "$existing" | grep -qE "\{[0-9]+:${label}:"; do
-    printfc "$NORD_YELLOW" "User '%s' already exists; trying unique name…" "$label"
-    label="${BASE_USER_LABEL}-$(( ${RANDOM} % 1000 ))"
-done
+if echo "$existing" | grep -qE "\{[0-9]+:${BASE_USER_LABEL}[^:]*:"; then
+    existing_name=$(printf '%s\n' "$existing" \
+        | grep -oE "\{[0-9]+:${BASE_USER_LABEL}[^:]*:" \
+        | head -1 \
+        | sed -E "s/\{[0-9]+:([^:]+):.*/\2/")
+    printfc "$NORD_YELLOW" "An ephemeral user already exists (%s)." "$existing_name"
+    printfc "$NORD_RED" "Only one ephemeral user is allowed at a time; remove it first, then re-run."
+    echo ""
+    exit 1
+fi
 
 printfc "$NORD_BLUE" "\n>Creating ephemeral user: %s" "$label"
 
