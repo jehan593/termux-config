@@ -52,20 +52,15 @@ create_out=$(_shell_cmd "pm create-user --ephemeral $label")
 new_uid=$(echo "$create_out" | sed -n 's/.*user id \([0-9][0-9]*\).*/\1/p' | tail -1)
 
 if [ -z "$new_uid" ]; then
-    printfc "$NORD_RED" "Failed to create user: %s" "$create_out"
+    printfc "$NORD_RED" "Failed to create user. Output: %s" "$create_out"
     exit 1
 fi
 printfc "$NORD_GREEN" "Created user: id=%s (%s)" "$new_uid" "$label"
 
-# 2. Skip the setup wizard for the new user: mark setup complete and hide the
-#    wizard, plus drop a global provisioning flag as a safety net.
+# 2. Skip the setup wizard for the new user.
 printfc "$NORD_BLUE" "\n>Skipping setup wizard"
-
 _shell_cmd "settings put secure user_setup_complete 1 --user $new_uid"
 _shell_cmd "settings put global device_provisioned 1"
-_shell_cmd "settings put global setup_wizard_has_run 1"
-_shell_cmd "pm disable-user --user $new_uid com.google.android.setupwizard"
-
 printfc "$NORD_GREEN" "Setup wizard marked as complete for user %s." "$new_uid"
 
 # 3. Install each package into the new user, but only if it already exists in
