@@ -105,8 +105,11 @@ else
             conf_file="$WPM_CONFIG_DIR/${s_name%-wpm}.conf"
 
             [ -f "$conf_file" ] && printfc "$GREEN" "Backup: ~/wpm-backups/%s" "$(basename "$conf_file")"
-            _remove_wpm_tunnel "$s_name" "$WPM_CONFIG_DIR" "$SERVICE_BASE_DIR" || printfc "$YELLOW" "Disable failed: %s" "$s_name"
-            printfc "$GREEN" "Removed: %s" "$s_name"
+            if _remove_wpm_tunnel "$s_name" "$WPM_CONFIG_DIR" "$SERVICE_BASE_DIR"; then
+                printfc "$GREEN" "Removed: %s" "$s_name"
+            else
+                printfc "$YELLOW" "Removed files for %s, but sv-disable reported failure." "$s_name"
+            fi
         done
     else
         printfc "$YELLOW" "Skipped removal."
@@ -124,8 +127,11 @@ if [ -f "$SHELL_RISH" ] || [ -f "$SHELL_DEX" ]; then
     printfc -n "$YELLOW" "Remove the Shizuku rish binaries from %s? [y/N]: " "$PREFIX/bin"
     read -r confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
-        _remove_shell_binaries
-        printfc "$GREEN" "Shizuku rish binaries removed."
+        if _remove_shell_binaries; then
+            printfc "$GREEN" "Shizuku rish binaries removed."
+        else
+            printfc "$YELLOW" "Some Shizuku rish binaries could not be removed."
+        fi
     else
         printfc "$YELLOW" "Skipped rish binary removal."
     fi
@@ -151,15 +157,20 @@ if [ -f "$YEARWALL_DIR/yearwall_update.sh" ]; then
         [ -f "$YEARWALL_BOOT_SCRIPT" ] && had_boot_script=1
         [ -f "$YEARWALL_PROFILE_SCRIPT" ] && had_profile_script=1
 
-        _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$CONFIG_PATH/data/wallpaper/wallpaper.png" "$YEARWALL_PROFILE_SCRIPT"
+        wallpaper_ok=0
+        _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$CONFIG_PATH/data/wallpaper/wallpaper.png" "$YEARWALL_PROFILE_SCRIPT" && wallpaper_ok=1
 
         printfc "$GREEN" "Generated wallpaper and update script removed."
         [ "$had_boot_script" -eq 1 ] && printfc "$GREEN" "Boot persistence script removed."
         [ "$had_profile_script" -eq 1 ] && printfc "$GREEN" "Session catch-up script removed."
-        printfc "$GREEN" "Wallpaper restored to default."
+        if [ "$wallpaper_ok" -eq 1 ]; then
+            printfc "$GREEN" "Wallpaper restored to default."
+        else
+            printfc "$RED" "Failed to restore default wallpaper."
+        fi
 
         if command -v crontab &>/dev/null; then
-            printfc "$GREEN" "Crontab cleared."
+            printfc "$GREEN" "Yearwall cron entries cleared."
         else
             printfc "$YELLOW" "Crontab missing. Skipped cron removal."
         fi

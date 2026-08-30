@@ -17,6 +17,16 @@ CONFIG_DIR="$HOME/.config/termux-config-files/wpm"
 
 # --- Internal Helpers ---
 
+# Resolve the SOCKS5 bind port for a tunnel from its config; "???" when the
+# config is missing.
+_tunnel_port() {
+    local s_name="$1"
+    local base_name="${s_name%-wpm}"
+    local conf_file="$CONFIG_DIR/${base_name}.conf"
+    [ -f "$conf_file" ] || { printf '%s\n' "???"; return 0; }
+    grep "BindAddress" "$conf_file" | cut -d':' -f2
+}
+
 # Shared fzf picker used across start, stop, restart, and remove actions
 _select_tunnels_fzf() {
     local prompt_msg="$1"
@@ -35,10 +45,7 @@ _select_tunnels_fzf() {
         local state=$(sv status "$s_name" 2>/dev/null | awk '{sub(/:$/,"",$1); print $1}')
 
         local base_name="${s_name%-wpm}"
-        local conf_file="$CONFIG_DIR/${base_name}.conf"
-
-        local port="???"
-        [ -f "$conf_file" ] && port=$(grep "BindAddress" "$conf_file" | cut -d':' -f2)
+        local port=$(_tunnel_port "$s_name")
 
         menu_items+="$(printf "%-18s | %-4s | :%s\n" "$base_name" "[$state]" "$port")\n"
     done
@@ -86,11 +93,7 @@ list_proxies() {
         local state=$(sv status "$s_name" 2>/dev/null | awk '{sub(/:$/,"",$1); print $1}')
 
         # Service name is "name-wpm", but the conf file is just "name.conf"
-        local base_name="${s_name%-wpm}"
-        local conf_file="$CONFIG_DIR/${base_name}.conf"
-
-        local port="???"
-        [ -f "$conf_file" ] && port=$(grep "BindAddress" "$conf_file" | cut -d':' -f2)
+        local port=$(_tunnel_port "$s_name")
 
         local test_result="--"
         if [[ "$state" == "run" && "$port" != "???" ]]; then
@@ -206,7 +209,7 @@ RUNEOF
 }
 
 _tunnel_action() {
-    local verb="$1" title="$2" gerund="$3" past="$4"
+    local verb="$1" gerund="$2" past="$3"
     local selections
     selections=$(_select_tunnels_fzf "Select tunnel(s) to $verb: ") || return 0
 
@@ -234,8 +237,11 @@ remove_proxy() {
         local conf_file="$CONFIG_DIR/${base_name}.conf"
 
         [ -f "$conf_file" ] && printfc "$NORD_GREEN" "Backup: ~/wpm-backups/%s.conf" "$base_name"
-        _remove_wpm_tunnel "$s_name" "$CONFIG_DIR" "$SERVICE_BASE_DIR" || printfc "$NORD_YELLOW" "Disable failed: %s" "$s_name"
-        printfc "$NORD_GREEN" "Removed: %s" "$s_name"
+        if _remove_wpm_tunnel "$s_name" "$CONFIG_DIR" "$SERVICE_BASE_DIR"; then
+            printfc "$NORD_GREEN" "Removed: %s" "$s_name"
+        else
+            printfc "$NORD_YELLOW" "Removed files for %s, but sv-disable reported failure." "$s_name"
+        fi
     done <<< "$selections"
     echo ""
 }
@@ -269,9 +275,9 @@ refresh_proxies() {
 case "$1" in
     add)     add_proxy "$2" "$3" "$4" ;;
     rm)      remove_proxy ;;
-    start)   _tunnel_action "start" "Start" "Starting" "Started" ;;
-    stop)    _tunnel_action "stop" "Stop" "Stopping" "Stopped" ;;
-    restart) _tunnel_action "restart" "Restart" "Restarting" "Restarted" ;;
+    start)   _tunnel_action "start" "Starting" "Started" ;;
+    stop)    _tunnel_action "stop" "Stopping" "Stopped" ;;
+    restart) _tunnel_action "restart" "Restarting" "Restarted" ;;
     ls)      list_proxies ;;
     refresh) refresh_proxies ;;
     *)

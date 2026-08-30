@@ -82,7 +82,9 @@ cup() {
     source "$TERMUX_CONFIG_PATH/helpers/font.sh"
 
     printfc "$NORD_BLUE" "\n>Packages"
-    pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1
+    if ! pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1; then
+        printfc "$NORD_RED" "Package index update failed (offline?). Showing cached data."
+    fi
     local upgradable=$(apt list --upgradable 2>/dev/null | grep '\[upgradable')
 
     if [ -z "$upgradable" ]; then
@@ -96,11 +98,17 @@ cup() {
     fi
 
     printfc "$NORD_BLUE" "\n>Martian Mono Font"
+    local font_rc
     if _font_check; then
-        printfc "$NORD_YELLOW" "Update available."
+        font_rc=0
     else
-        printfc "$NORD_GREEN" "Up to date."
+        font_rc=$?
     fi
+    case "$font_rc" in
+        0)  printfc "$NORD_YELLOW" "Update available." ;;
+        2)  printfc "$NORD_YELLOW" "Could not check for font updates (offline?)." ;;
+        *)  printfc "$NORD_GREEN" "Up to date." ;;
+    esac
 
     printfc "$NORD_BLUE" "\n>Termux Config"
     git -C "$TERMUX_CONFIG_PATH" fetch --quiet 2>/dev/null
@@ -132,8 +140,10 @@ upall() {
 upc() {
     if git -C "$TERMUX_CONFIG_PATH" pull --rebase --autostash; then
         printfc "$NORD_YELLOW" "Run 'reload' to apply updated configuration."
-        echo ""
+    else
+        printfc "$NORD_RED" "Config sync failed."
     fi
+    echo ""
 }
 
 upfont() {
@@ -172,8 +182,6 @@ inst() {
 
     [[ -z "$selected" ]] && return 0
 
-    local count=$(echo "$selected" | wc -w)
-
     printfc "$NORD_YELLOW" "\nSelected to install:"
     echo "$selected" | sed 's/ /\n/g; s/^/+ /'
     echo ""
@@ -192,8 +200,6 @@ uinst() {
         --bind 'ctrl-p:toggle-preview' | tr '\n' ' ' | sed 's/ $//')
 
     [[ -z "$selected" ]] && return 0
-
-    local count=$(echo "$selected" | wc -w)
 
     printfc "$NORD_YELLOW" "\nSelected for removal:"
     echo "$selected" | sed 's/ /\n/g; s/^/- /'

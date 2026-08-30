@@ -43,9 +43,8 @@ _verify_shizuku() {
 }
 
 # Used by reset.sh: removes the Shizuku shell binaries placed by `shell setup`.
+# Returns 0 once both files are gone, 1 if any file still exists.
 _remove_shell_binaries() {
-    local removed=0
-    [ -f "$SHELL_DEX" ] && rm -f "$SHELL_DEX" && removed=1
-    [ -f "$SHELL_RISH" ] && rm -f "$SHELL_RISH" && removed=1
-    return "$removed"
+    rm -f "$SHELL_DEX" "$SHELL_RISH"
+    ! [ -e "$SHELL_DEX" ] && ! [ -e "$SHELL_RISH" ]
 }

@@ -20,6 +20,8 @@ printfc "$CYAN" "\n┌───────────────────�
 printfc "$CYAN" "│  Termux Installer  │"
 printfc "$CYAN" "└────────────────────┘"
 
+had_error=0
+
 # ==============================================================================
 # 0. PREREQUISITES CHECK
 # ==============================================================================
@@ -60,7 +62,10 @@ fi
 
 printfc "$BLUE" "\n>Installing Dependencies"
 
-pkg update -y -o Dpkg::Use-Pty=0
+pkg update -y -o Dpkg::Use-Pty=0 || {
+    printfc "$YELLOW" "Warning: package index update failed (retrying might help)."
+    had_error=1
+}
 
 for pkg in $SETUP_PKGS; do
     if ! dpkg -s "$pkg" &>/dev/null; then
@@ -68,6 +73,7 @@ for pkg in $SETUP_PKGS; do
             printfc "$GREEN" "Installed %s" "$pkg"
         else
             printfc "$RED" "Failed: %s" "$pkg"
+            had_error=1
         fi
     else
         printfc "$GREEN" "%s already installed." "$pkg"
@@ -124,6 +130,7 @@ if command -v tldr &>/dev/null; then
         printfc "$GREEN" "tldr cache updated."
     else
         printfc "$RED" "tldr cache update failed."
+        had_error=1
     fi
 else
     printfc "$YELLOW" "tldr binary missing. Skipped cache update."
@@ -162,6 +169,7 @@ if command -v sv-enable &>/dev/null; then
         printfc "$GREEN" "SSH enabled."
     else
         printfc "$RED" "SSH did not come up after enabling. Check 'sv status sshd' manually."
+        had_error=1
     fi
 else
     printfc "$YELLOW" "termux-services missing. Skipped SSH."
@@ -212,11 +220,16 @@ printfc "$BLUE" "\n>Applying Wallpaper"
 
 WALLPAPER="$CONFIG_PATH/data/wallpaper/wallpaper.png"
 if [ -f "$WALLPAPER" ]; then
-    termux-wallpaper -f "$WALLPAPER"
-    if [ ! -f "$HOME/.config/termux-config-files/yearwall/yearwall_update.sh" ]; then
-        termux-wallpaper -f "$WALLPAPER" -l
+    if termux-wallpaper -f "$WALLPAPER"; then
+        # Also set the lock screen, unless yearwall owns the lock screen.
+        if [ ! -f "$HOME/.config/termux-config-files/yearwall/yearwall_update.sh" ]; then
+            termux-wallpaper -f "$WALLPAPER" -l
+        fi
+        printfc "$GREEN" "Wallpaper applied."
+    else
+        printfc "$RED" "Failed to apply wallpaper."
+        had_error=1
     fi
-    printfc "$GREEN" "Wallpaper applied."
 else
     printfc "$YELLOW" "Missing: wallpaper.png"
 fi
@@ -252,5 +265,9 @@ esac
 # ==============================================================================
 
 echo ""
-printfc "$GREEN" "Setup complete! Run exit and relaunch Termux."
+if [ "$had_error" -eq 1 ]; then
+    printfc "$YELLOW" "Setup finished with some errors — review the messages above."
+else
+    printfc "$GREEN" "Setup complete! Run exit and relaunch Termux."
+fi
 echo ""

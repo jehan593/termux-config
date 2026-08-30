@@ -55,9 +55,9 @@ check_status() {
 
     # 4. Check Session Catch-up (covers cron misses when Termux wasn't running at midnight)
     if [ -f "$YEARWALL_PROFILE_SCRIPT" ] && [ -x "$YEARWALL_PROFILE_SCRIPT" ]; then
-        printfc "$NORD_GREEN" "Persistence: Session catch-up script active."
+        printfc "$NORD_GREEN" "Catch-up: Session catch-up script active."
     else
-        printfc "$NORD_YELLOW" "Persistence: Session catch-up script missing or not executable."
+        printfc "$NORD_YELLOW" "Catch-up: Session catch-up script missing or not executable."
         is_setup=false
     fi
 
@@ -145,10 +145,10 @@ magick -size 1080x2400 xc:"rgb(46,52,64)" \
     -fill "rgb(235,203,139)" -draw "text 113,-535 \"$right_text\"" \
     -fill "rgb(235,203,139)" -draw "text 114,-535 \"$right_text\"" \
     \
-    "$OUTPUT"
+    "$OUTPUT" || { echo "Failed to generate wallpaper image."; exit 1; }
 # 6. Apply Wallpaper
 # Note: -l also sets the lock screen wallpaper
-termux-wallpaper -f "$OUTPUT" -l
+termux-wallpaper -f "$OUTPUT" -l || { echo "Failed to apply wallpaper."; exit 1; }
 EOF
     chmod +x "$YEARWALL_UPDATE_SCRIPT"
     printfc "$NORD_GREEN" "Script saved."
@@ -207,16 +207,20 @@ PROFILEEOF
 
 remove_yearwall() {
 
-    local had_boot_script=0 had_profile_script=0
+    local had_boot_script=0 had_profile_script=0 wallpaper_ok=0
     [ -f "$YEARWALL_BOOT_SCRIPT" ] && had_boot_script=1
     [ -f "$YEARWALL_PROFILE_SCRIPT" ] && had_profile_script=1
 
-    _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$TERMUX_CONFIG_PATH/data/wallpaper/wallpaper.png" "$YEARWALL_PROFILE_SCRIPT"
+    _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$TERMUX_CONFIG_PATH/data/wallpaper/wallpaper.png" "$YEARWALL_PROFILE_SCRIPT" && wallpaper_ok=1
 
     printfc "$NORD_GREEN" "Files removed."
-    printfc "$NORD_GREEN" "Wallpaper restored to default."
+    if [ "$wallpaper_ok" -eq 1 ]; then
+        printfc "$NORD_GREEN" "Wallpaper restored to default."
+    else
+        printfc "$NORD_RED" "Failed to restore default wallpaper."
+    fi
 
-    command -v crontab &>/dev/null && printfc "$NORD_GREEN" "Crontab cleared."
+    command -v crontab &>/dev/null && printfc "$NORD_GREEN" "Yearwall cron entries cleared."
 
     if [ "$had_boot_script" -eq 1 ]; then
         printfc "$NORD_GREEN" "Boot script removed."
