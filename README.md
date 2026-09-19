@@ -1,16 +1,18 @@
 # Termux Config
 
-Personal dotfiles and setup automation for [Termux](https://termux.dev/), the Android terminal emulator. Handles package installation, dotfile symlinking, Nord theming, and a few custom CLI tools — all in pure bash, no build system required.
+> FYI: This project is fully vibe coded.
+
+Personal configuration and setup scripts for [Termux](https://termux.dev/), the Android terminal app. Installs packages, links configuration files, applies the Nord theme, and adds command-line tools.
 
 ## What it sets up
 
-- **Dotfiles** — `.bashrc`, nvim config, starship prompt, topgrade, Termux color/property files, symlinked from `home/` into `$HOME`
-- **Nord theme** — truecolor Termux styling and matching wallpaper
-- **Boot & services** — `termux-services` boot scripts enabled on setup
+- **Configuration** — Bash, Neovim, Starship, Topgrade, and Termux settings, linked from `home/` into your home folder
+- **Nord theme** — terminal colors and matching wallpaper
+- **Services** — SSH and service startup scripts
 - **Custom tools** (installed to `$PREFIX/bin`):
-  - `wpm` — wireproxy SOCKS5 tunnel manager, run as `runit` services
-  - `yearwall` — daily-updating lock-screen wallpaper showing year progress as a dot grid
-  - `shell` — Shizuku-backed ADB shell: `shell setup` to install rish and verify the server, bare `shell` to enter the shell, `shell scripts` to run pre-built ADB scripts
+  - `wpm` — manage wireproxy SOCKS5 tunnels
+  - `yearwall` — show year progress on your lock screen, updated daily
+  - `shell` — access the Android shell through Shizuku. Run `shell setup` to configure it, `shell` to open it, or `shell scripts` to choose a bundled script
 
 ## Requirements
 
@@ -26,7 +28,7 @@ bash setup.sh
 
 ## Reset
 
-Reverses everything `setup.sh` did (dotfile symlinks, boot scripts, services, theme, tools), asking per-feature before removing anything with side effects (VPN tunnels, wallpaper, SSH):
+Removes configuration links and tools, restores available backups, and lets you choose whether to remove tunnels, wallpaper setup, and SSH startup. Packages must be uninstalled separately:
 
 ```bash
 bash reset.sh

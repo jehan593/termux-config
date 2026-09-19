@@ -26,10 +26,7 @@ _verify_shizuku || {
 
 PKGS_TO_INSTALL="com.aurora.store"
 
-# 0. Reuse a stable label so any earlier ephemeral user is easy to spot in the
-#    user list; more than one can exist at once. If a label already exists,
-#    pick the next free one (ephemeral, ephemeral2, ephemeral3, …) so the new
-#    user's label never collides.
+# Use numbered names so temporary users are easy to distinguish.
 BASE_USER_LABEL="ephemeral"
 label="$BASE_USER_LABEL"
 
@@ -46,7 +43,7 @@ if [ -n "$existing_names" ]; then
         n=$((n + 1))
     done
     printfc "$NORD_YELLOW" "An ephemeral user already exists (%s)." "$existing_name"
-    printfc "$NORD_YELLOW" "Creating a uniquely-named one instead: %s" "$label"
+    printfc "$NORD_YELLOW" "Creating another user named %s." "$label"
     echo ""
 fi
 
@@ -63,7 +60,6 @@ if [ -z "$new_uid" ]; then
 fi
 printfc "$NORD_GREEN" "Created user: id=%s (%s)" "$new_uid" "$label"
 
-# 2. Skip the setup wizard for the new user.
 printfc "$NORD_BLUE" "\n>Skipping setup wizard"
 if _shell_cmd "settings put secure user_setup_complete 1 --user $new_uid" >/dev/null 2>&1 \
    && _shell_cmd "settings put global device_provisioned 1" >/dev/null 2>&1; then
@@ -72,8 +68,7 @@ else
     printfc "$NORD_RED" "Failed to mark the setup wizard as complete for user %s." "$new_uid"
 fi
 
-# 3. Install each package into the new user, but only if it already exists in
-#    the current (owner) user — otherwise skip it automatically.
+# Only copy apps already installed for the owner.
 printfc "$NORD_BLUE" "\n>Installing packages into user %s" "$new_uid"
 for pkg in $PKGS_TO_INSTALL; do
     if _shell_cmd "pm list packages --user 0 $pkg" | grep -q "package:$pkg"; then
@@ -85,7 +80,7 @@ for pkg in $PKGS_TO_INSTALL; do
             printfc "$NORD_YELLOW" "  Output: %s" "$install_out"
         fi
     else
-        printfc "$NORD_YELLOW" "Skipped: %s not installed in current user." "$pkg"
+        printfc "$NORD_YELLOW" "Skipped: %s not installed for the owner." "$pkg"
     fi
 done
 

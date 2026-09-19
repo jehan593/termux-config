@@ -152,27 +152,16 @@ if [ -f "$YEARWALL_DIR/yearwall_update.sh" ]; then
     read -r confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         echo ""
-        had_boot_script=0
-        had_profile_script=0
-        [ -f "$YEARWALL_BOOT_SCRIPT" ] && had_boot_script=1
-        [ -f "$YEARWALL_PROFILE_SCRIPT" ] && had_profile_script=1
-
-        wallpaper_ok=0
-        _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$CONFIG_PATH/data/wallpaper/wallpaper.png" "$YEARWALL_PROFILE_SCRIPT" && wallpaper_ok=1
-
-        printfc "$GREEN" "Generated wallpaper and update script removed."
-        [ "$had_boot_script" -eq 1 ] && printfc "$GREEN" "Boot persistence script removed."
-        [ "$had_profile_script" -eq 1 ] && printfc "$GREEN" "Session catch-up script removed."
-        if [ "$wallpaper_ok" -eq 1 ]; then
-            printfc "$GREEN" "Wallpaper restored to default."
+        if _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$CONFIG_PATH/data/wallpaper/wallpaper.png" "$YEARWALL_PROFILE_SCRIPT"; then
+            printfc "$GREEN" "Yearwall files removed and default wallpaper restored."
+            if command -v crontab &>/dev/null; then
+                printfc "$GREEN" "Yearwall schedule removed."
+            else
+                printfc "$YELLOW" "crontab is missing. Could not remove the Yearwall schedule."
+            fi
         else
-            printfc "$RED" "Failed to restore default wallpaper."
-        fi
-
-        if command -v crontab &>/dev/null; then
-            printfc "$GREEN" "Yearwall cron entries cleared."
-        else
-            printfc "$YELLOW" "Crontab missing. Skipped cron removal."
+            printfc "$RED" "Yearwall removal incomplete. Review the errors above."
+            kept_yearwall=1
         fi
     else
         printfc "$YELLOW" "Skipped removal. Wallpaper and boot scripts preserved."

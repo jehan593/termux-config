@@ -55,9 +55,9 @@ check_status() {
 
     # 4. Check Session Catch-up (covers cron misses when Termux wasn't running at midnight)
     if [ -f "$YEARWALL_PROFILE_SCRIPT" ] && [ -x "$YEARWALL_PROFILE_SCRIPT" ]; then
-        printfc "$NORD_GREEN" "Catch-up: Session catch-up script active."
+        printfc "$NORD_GREEN" "Session updates: Script ready."
     else
-        printfc "$NORD_YELLOW" "Catch-up: Session catch-up script missing or not executable."
+        printfc "$NORD_YELLOW" "Session updates: Script missing or cannot run."
         is_setup=false
     fi
 
@@ -178,10 +178,7 @@ BOOTEOF
     chmod +x "$YEARWALL_BOOT_SCRIPT"
     printfc "$NORD_GREEN" "Boot persistence enabled."
 
-    # 4. Session catch-up (cron only fires while Termux is running; if the
-    # device was off or Termux wasn't open at midnight, the wallpaper goes
-    # stale until the next boot. This regenerates it on the next opened
-    # session instead of waiting for that.)
+    # Refresh on the next session if Termux missed the midnight update.
     mkdir -p "$PREFIX/etc/profile.d"
     cat > "$YEARWALL_PROFILE_SCRIPT" << PROFILEEOF
 #!/data/data/com.termux/files/usr/bin/bash
@@ -206,36 +203,17 @@ PROFILEEOF
 }
 
 remove_yearwall() {
-
-    local had_boot_script=0 had_profile_script=0 wallpaper_ok=0
-    [ -f "$YEARWALL_BOOT_SCRIPT" ] && had_boot_script=1
-    [ -f "$YEARWALL_PROFILE_SCRIPT" ] && had_profile_script=1
-
-    _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$TERMUX_CONFIG_PATH/data/wallpaper/wallpaper.png" "$YEARWALL_PROFILE_SCRIPT" && wallpaper_ok=1
-
-    printfc "$NORD_GREEN" "Files removed."
-    if [ "$wallpaper_ok" -eq 1 ]; then
-        printfc "$NORD_GREEN" "Wallpaper restored to default."
-    else
-        printfc "$NORD_RED" "Failed to restore default wallpaper."
+    if ! _remove_yearwall_setup "$YEARWALL_DIR" "$YEARWALL_BOOT_SCRIPT" "$TERMUX_CONFIG_PATH/data/wallpaper/wallpaper.png" "$YEARWALL_PROFILE_SCRIPT"; then
+        printfc "$NORD_RED" "Yearwall removal incomplete. Review the errors above."
+        return 1
     fi
 
-    command -v crontab &>/dev/null && printfc "$NORD_GREEN" "Yearwall cron entries cleared."
-
-    if [ "$had_boot_script" -eq 1 ]; then
-        printfc "$NORD_GREEN" "Boot script removed."
+    printfc "$NORD_GREEN" "Yearwall files removed and default wallpaper restored."
+    if command -v crontab &>/dev/null; then
+        printfc "$NORD_GREEN" "Yearwall schedule removed."
     else
-        printfc "$NORD_YELLOW" "Boot script already removed."
+        printfc "$NORD_YELLOW" "crontab is missing. Could not remove the Yearwall schedule."
     fi
-
-    if [ "$had_profile_script" -eq 1 ]; then
-        printfc "$NORD_GREEN" "Session catch-up script removed."
-    else
-        printfc "$NORD_YELLOW" "Session catch-up script already removed."
-    fi
-
-    echo ""
-    printfc "$NORD_GREEN" "Remove complete."
     echo ""
 }
 

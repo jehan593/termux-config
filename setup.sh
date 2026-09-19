@@ -63,7 +63,7 @@ fi
 printfc "$BLUE" "\n>Installing Dependencies"
 
 pkg update -y -o Dpkg::Use-Pty=0 || {
-    printfc "$YELLOW" "Warning: package index update failed (retrying might help)."
+    printfc "$YELLOW" "Could not refresh the package list. Try running setup again."
     had_error=1
 }
 
@@ -168,7 +168,7 @@ if command -v sv-enable &>/dev/null; then
     if [ "$ssh_up" -eq 1 ]; then
         printfc "$GREEN" "SSH enabled."
     else
-        printfc "$RED" "SSH did not come up after enabling. Check 'sv status sshd' manually."
+        printfc "$RED" "SSH failed to start. Check with 'sv status sshd'."
         had_error=1
     fi
 else
@@ -221,7 +221,7 @@ printfc "$BLUE" "\n>Applying Wallpaper"
 WALLPAPER="$CONFIG_PATH/data/wallpaper/wallpaper.png"
 if [ -f "$WALLPAPER" ]; then
     if termux-wallpaper -f "$WALLPAPER"; then
-        # Also set the lock screen, unless yearwall owns the lock screen.
+        # Preserve the lock-screen wallpaper when yearwall is installed.
         if [ ! -f "$HOME/.config/termux-config-files/yearwall/yearwall_update.sh" ]; then
             termux-wallpaper -f "$WALLPAPER" -l
         fi

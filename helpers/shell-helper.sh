@@ -28,9 +28,7 @@ _verify_shizuku() {
         return 1
     fi
     local uid out
-    # Although `rish -c` reports via exit code, its stdout carries a banner
-    # ("Entering shell...") before the real output, so pull the uid off a line
-    # that is exactly a number instead of comparing the whole stream.
+    # Ignore the rish banner when reading the user ID.
     out=$("$SHELL_RISH" -c 'id -u' 2>&1)
     uid=$(printf '%s\n' "$out" | sed -n 's/^\([0-9][0-9]*\)$/\1/p' | tail -1)
     if [[ "$uid" == "2000" ]]; then

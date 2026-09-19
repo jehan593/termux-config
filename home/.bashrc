@@ -83,7 +83,7 @@ cup() {
 
     printfc "$NORD_BLUE" "\n>Packages"
     if ! pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1; then
-        printfc "$NORD_RED" "Package index update failed (offline?). Showing cached data."
+        printfc "$NORD_RED" "Could not refresh the package list. Showing saved results."
     fi
     local upgradable=$(apt list --upgradable 2>/dev/null | grep '\[upgradable')
 
@@ -106,7 +106,7 @@ cup() {
     fi
     case "$font_rc" in
         0)  printfc "$NORD_YELLOW" "Update available." ;;
-        2)  printfc "$NORD_YELLOW" "Could not check for font updates (offline?)." ;;
+        2)  printfc "$NORD_YELLOW" "Could not check for font updates. Try again later." ;;
         *)  printfc "$NORD_GREEN" "Up to date." ;;
     esac
 

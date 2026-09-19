@@ -21,7 +21,7 @@
 # _font_check exit codes:
 #   0 = update available
 #   1 = up to date
-#   2 = latest release tag unresolvable (e.g. offline)
+#   2 = could not check the latest release
 # ==============================================================================
 
 # Resolves the latest nerd-fonts release tag. Prints the tag on success;
@@ -37,7 +37,6 @@ _font_remote_tag() {
     esac
 }
 
-# Update probe: compares the cached .version against the latest release tag.
 _font_check() {
     local version_file="$HOME/.config/termux-config-files/fonts/.version"
     local remote_version cached_version=""

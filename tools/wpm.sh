@@ -17,8 +17,7 @@ CONFIG_DIR="$HOME/.config/termux-config-files/wpm"
 
 # --- Internal Helpers ---
 
-# Resolve the SOCKS5 bind port for a tunnel from its config; "???" when the
-# config is missing.
+# Show "???" when the tunnel config is missing.
 _tunnel_port() {
     local s_name="$1"
     local base_name="${s_name%-wpm}"
@@ -92,7 +91,6 @@ list_proxies() {
         local s_name=$(basename "$s")
         local state=$(sv status "$s_name" 2>/dev/null | awk '{sub(/:$/,"",$1); print $1}')
 
-        # Service name is "name-wpm", but the conf file is just "name.conf"
         local port=$(_tunnel_port "$s_name")
 
         local test_result="--"
@@ -142,7 +140,7 @@ add_proxy() {
         return 1
     fi
 
-    # Check for duplicate ports across existing configurations (now scanning clean *.conf files)
+    # Each tunnel needs its own listening port.
     if [ -d "$CONFIG_DIR" ]; then
         for conf in "$CONFIG_DIR"/*.conf; do
             [ -e "$conf" ] || break
