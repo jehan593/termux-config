@@ -5,7 +5,7 @@ source "$TERMUX_CONFIG_PATH/helpers/colors-nord.sh"
 source "$TERMUX_CONFIG_PATH/helpers/printer.sh"
 source "$TERMUX_CONFIG_PATH/helpers/dep-checker.sh"
 
-if ! _test_dependencies "starship" "zoxide" "nvim" "fzf" "fd" "trash-put" "trash-empty" "termux-open-url"; then
+if ! _test_dependencies "starship" "zoxide" "nvim" "fzf" "fd" "trash-put" "trash-empty" "termux-open-url" "exiftool"; then
     printfc "$NORD_RED" "Missing dependencies: %s" "${_MISSING_DEPS[*]}"
     printfc "$NORD_RED" "Skipping shell configuration. Run setup.sh to install missing dependencies."
     unset PROMPT_COMMAND
@@ -250,6 +250,36 @@ trash() {
     for item in "${targets[@]}"; do
         trash-put --trash-dir "$HOME/.trash" "$item"
     done
+}
+
+cleanimg() {
+    if [ $# -eq 0 ]; then
+        printfc "$NORD_YELLOW" "Usage: cleanimg <image>..."
+        return 1
+    fi
+
+    local img path err failed=0
+    for img in "$@"; do
+        # A full path is passed rather than '$img' (via realpath) so leading-dash
+        # filenames can't be parsed as exiftool options. Note this can't use '--'
+        # — to exiftool that means "exclude tag". -q keeps exiftool silent on
+        # success; the exit code decides the result and $err carries its error
+        # text on failure.
+        path=$(realpath -- "$img" 2>/dev/null)
+        if [ -z "$path" ]; then
+            printfc "$NORD_RED" "Not found: %s" "$img"
+            failed=1
+            continue
+        fi
+        if err=$(exiftool -q -all= -overwrite_original "$path" 2>&1); then
+            printfc "$NORD_GREEN" "Cleaned metadata: %s" "$img"
+        else
+            printfc "$NORD_RED" "Failed to clean: %s" "$img"
+            [ -n "$err" ] && echo "$err" | sed 's/^/  /'
+            failed=1
+        fi
+    done
+    return $failed
 }
 
 # --- Navigation & Utilities ---
