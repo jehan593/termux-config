@@ -102,7 +102,8 @@ _print_upgradable() {
         rem="${rem#* }"
         local new_ver="${rem%% *}"
         local old_ver="$(printf '%s' "$line" | sed 's/.*from: //; s/]$//')"
-        printfc "$NORD_YELLOW" "%s  [%s → %s]" "$pkg" "$old_ver" "$new_ver"
+        printfc -n "$NORD_YELLOW" "%s  " "$pkg"
+        printfc "$NORD_SNOW_1" "[%s → %s]" "$old_ver" "$new_ver"
     done
 
     local count=$(printf '%s\n' "$upgradable" | grep -c '\[upgradable')
