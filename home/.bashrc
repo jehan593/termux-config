@@ -78,6 +78,37 @@ sys() {
     echo ""
 }
 
+# --- Upgradable Package List (shared by cup and upp) ---
+
+# Echoes one line per upgradable package in apt's format:
+#   name/repo newversion arch [upgradable from: oldversion]
+# Run 'pkg update' first for fresh data.
+_upgradable_pkgs() {
+    apt list --upgradable 2>/dev/null | grep '\[upgradable'
+}
+
+# Prints the list as "name [old → new]" plus a summary line.
+_print_upgradable() {
+    local upgradable="$1"
+    if [ -z "$upgradable" ]; then
+        printfc "$NORD_GREEN" "Up to date."
+        return 0
+    fi
+
+    printf '%s\n' "$upgradable" | while read -r line; do
+        [[ -z "$line" ]] && continue
+        local pkg="${line%%/*}"
+        local rem="${line#*/}"
+        rem="${rem#* }"
+        local new_ver="${rem%% *}"
+        local old_ver="$(printf '%s' "$line" | sed 's/.*from: //; s/]$//')"
+        printfc "$NORD_YELLOW" "%s  [%s → %s]" "$pkg" "$old_ver" "$new_ver"
+    done
+
+    local count=$(printf '%s\n' "$upgradable" | grep -c '\[upgradable')
+    printfc "$NORD_YELLOW" "\n%s update(s) available." "$count"
+}
+
 cup() {
     source "$TERMUX_CONFIG_PATH/helpers/font.sh"
 
@@ -85,17 +116,7 @@ cup() {
     if ! pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1; then
         printfc "$NORD_RED" "Could not refresh the package list. Showing saved results."
     fi
-    local upgradable=$(apt list --upgradable 2>/dev/null | grep '\[upgradable')
-
-    if [ -z "$upgradable" ]; then
-        printfc "$NORD_GREEN" "Up to date."
-    else
-        echo "$upgradable" | awk -F'/' '{print $1}' | while read -r pkg; do
-            printfc "$NORD_YELLOW" "%s" "$pkg"
-        done
-        local count=$(echo "$upgradable" | grep -c '\[upgradable')
-        printfc "$NORD_YELLOW" "\n%s update(s) available." "$count"
-    fi
+    _print_upgradable "$(_upgradable_pkgs)"
 
     printfc "$NORD_BLUE" "\n>Martian Mono Font"
     local font_rc
@@ -121,6 +142,15 @@ cup() {
 }
 
 upp() {
+    if ! pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1; then
+        printfc "$NORD_RED" "Could not refresh the package list. Showing saved results."
+    fi
+    local pending=$(_upgradable_pkgs)
+    if [ -n "$pending" ]; then
+        _print_upgradable "$pending"
+        echo ""
+    fi
+
     if pkg upgrade -y; then
         printfc "$NORD_GREEN" "Upgrade complete."
     else
