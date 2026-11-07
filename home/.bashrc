@@ -289,7 +289,7 @@ cleanimg() {
         return 1
     fi
 
-    local img path err failed=0
+    local img path err base ext dir newpath failed=0
     for img in "$@"; do
         # A full path is passed rather than '$img' (via realpath) so leading-dash
         # filenames can't be parsed as exiftool options. Note this can't use '--'
@@ -302,11 +302,28 @@ cleanimg() {
             failed=1
             continue
         fi
-        if err=$(exiftool -q -all= -overwrite_original "$path" 2>&1); then
-            printfc "$NORD_GREEN" "Cleaned metadata: %s" "$img"
-        else
+        if ! err=$(exiftool -q -all= -overwrite_original "$path" 2>&1); then
             printfc "$NORD_RED" "Failed to clean: %s" "$img"
             [ -n "$err" ] && echo "$err" | sed 's/^/  /'
+            failed=1
+            continue
+        fi
+        printfc "$NORD_GREEN" "Cleaned metadata: %s" "$img"
+
+        # Rename to a random alphanumeric name, keeping the extension. Retry on
+        # collision so an existing file is never overwritten.
+        base=$(basename -- "$path")
+        ext=""
+        [[ "$base" == *.* ]] && ext=".${base##*.}"
+        dir=$(dirname -- "$path")
+        while :; do
+            newpath="$dir/$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 12)$ext"
+            [ -e "$newpath" ] || break
+        done
+        if mv -- "$path" "$newpath"; then
+            printfc "$NORD_GREEN" "Renamed: %s → %s" "$img" "$(basename -- "$newpath")"
+        else
+            printfc "$NORD_RED" "Failed to rename: %s" "$img"
             failed=1
         fi
     done
