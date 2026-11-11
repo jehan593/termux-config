@@ -85,14 +85,12 @@ list_proxies() {
     printfc "$NORD_SNOW_1" "\n%-25s %-10s %-8s %-6s" "SERVICE" "STATUS" "PORT" "TEST"
     printfc "$NORD_POLAR_4" "─────────────────────────────────────────────────"
 
-    # Run every connectivity test in parallel (each can take up to 2s), then
-    # print the rows in service order — output is identical to sequential.
-    # Monitor is toggled off so the interactive shell doesn't print job
-    # notifications between the rows.
-    local __monitor_was_on=0
-    [[ -o monitor ]] && __monitor_was_on=1
-    set +m
-    local -a names=() states=() ports=() pids=()
+    # Run every connectivity test in parallel, then print the rows in service
+    # order — output is identical to sequential. The tests run inside a
+    # foreground subshell on purpose: background jobs owned by the interactive
+    # shell print job-control noise ("[1] 1234"), while jobs owned by a
+    # subshell (non-interactive) never do.
+    local -a names=() states=() ports=()
     local test_dir
     test_dir=$(mktemp -d)
     local i=0 s s_name state port
@@ -102,22 +100,26 @@ list_proxies() {
         state=$(sv status "$s_name" 2>/dev/null | awk '{sub(/:$/,"",$1); print $1}')
         port=$(_tunnel_port "$s_name")
         names[i]="$s_name"; states[i]="$state"; ports[i]="$port"
-        (
-            if [[ "$state" == "run" && "$port" != "???" ]]; then
-                if curl -s --socks5-hostname "127.0.0.1:$port" https://google.com --connect-timeout 2 > /dev/null; then
-                    echo "PASS"
-                else
-                    echo "FAIL"
-                fi
-            else
-                echo "--"
-            fi
-        ) > "$test_dir/$i" &
-        pids[i]=$!
         ((i++))
     done
-    wait "${pids[@]}"
-    (( __monitor_was_on )) && set -m
+
+    (
+        local j
+        for j in "${!names[@]}"; do
+            (
+                if [[ "${states[j]}" == "run" && "${ports[j]}" != "???" ]]; then
+                    if curl -s --socks5-hostname "127.0.0.1:${ports[j]}" https://google.com --connect-timeout 2 > /dev/null; then
+                        echo "PASS"
+                    else
+                        echo "FAIL"
+                    fi
+                else
+                    echo "--"
+                fi
+            ) > "$test_dir/$j" &
+        done
+        wait
+    )
 
     for i in "${!names[@]}"; do
         local test_result

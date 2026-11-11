@@ -173,25 +173,24 @@ _print_upgradable() {
 cup() {
     source "$TERMUX_CONFIG_PATH/helpers/font.sh"
 
-    # Background checks would print job-control noise ("[1] 1234", "Exit 1")
-    # into the output in an interactive shell — silence it while they run.
-    # The RETURN trap restores the shell's monitor state however we exit.
-    local __monitor_was_on=0
-    [[ -o monitor ]] && __monitor_was_on=1
-    set +m
-    trap '(( __monitor_was_on )) && set -m; trap - RETURN' RETURN
-
-    # Kick off the two quick network checks while the slow 'pkg update' runs,
-    # then collect their results below — the section order is unchanged.
-    _font_check > /dev/null 2>&1 &
-    local font_pid=$!
-    local git_file="$_SYS_CACHE_DIR/cup-git.$$"
-    mkdir -p "$_SYS_CACHE_DIR"
+    # The two quick checks run detached while the slow 'pkg update' runs.
+    # They must NOT be plain background jobs of this shell: an interactive
+    # shell prints job-control noise ("[1] 1234", "Exit 1") for those, and
+    # `set +m` does not reliably suppress it. Launching the job inside a
+    # subshell that exits immediately orphans it silently; cup polls for the
+    # result files below.
+    local check_dir="$_SYS_CACHE_DIR/cup.$$"
+    mkdir -p "$check_dir"
+    local font_rc_file="$check_dir/font-rc" git_file="$check_dir/git" done_file="$check_dir/done"
     (
-        git -C "$TERMUX_CONFIG_PATH" fetch --quiet 2>/dev/null
-        git -C "$TERMUX_CONFIG_PATH" rev-list --count 'HEAD..@{u}' 2>/dev/null
-    ) > "$git_file" &
-    local git_pid=$!
+        {
+            _font_check > /dev/null 2>&1
+            echo $? > "$font_rc_file"
+            git -C "$TERMUX_CONFIG_PATH" fetch --quiet 2>/dev/null
+            git -C "$TERMUX_CONFIG_PATH" rev-list --count 'HEAD..@{u}' 2>/dev/null > "$git_file"
+            echo done > "$done_file"
+        } &
+    ) > /dev/null 2>&1
 
     printfc "$NORD_BLUE" "\n>Packages"
     if ! pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1; then
@@ -199,9 +198,16 @@ cup() {
     fi
     _print_upgradable "$(_upgradable_pkgs)"
 
+    # Collect the detached checks; capped so a hung check can't stall cup.
+    local waited=0
+    while [ ! -f "$done_file" ] && [ "$waited" -lt 150 ]; do
+        sleep 0.1
+        waited=$((waited + 1))
+    done
+
     printfc "$NORD_BLUE" "\n>Martian Mono Font"
-    wait "$font_pid" 2>/dev/null
-    local font_rc=$?
+    local font_rc=2
+    [ -s "$font_rc_file" ] && font_rc=$(<"$font_rc_file")
     case "$font_rc" in
         0)  printfc "$NORD_YELLOW" "Update available." ;;
         2)  printfc "$NORD_YELLOW" "Could not check for font updates. Try again later." ;;
@@ -209,14 +215,14 @@ cup() {
     esac
 
     printfc "$NORD_BLUE" "\n>Termux Config"
-    wait "$git_pid" 2>/dev/null
     local behind=""
-    [ -f "$git_file" ] && behind=$(head -n1 "$git_file")
-    rm -f "$git_file"
+    [ -s "$git_file" ] && behind=$(head -n1 "$git_file")
     case "$behind" in
         ''|0) printfc "$NORD_GREEN" "Up to date." ;;
         *)    printfc "$NORD_YELLOW" "%s new commit(s). Run 'upc'." "$behind" ;;
     esac
+
+    rm -rf "$check_dir"
     echo ""
 }
 
