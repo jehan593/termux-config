@@ -51,9 +51,17 @@ esac
 if [ ! -d ~/storage ]; then
     termux-setup-storage
     printfc "$YELLOW" "Allow storage access in prompt..."
-    sleep 3
-else
+    # Wait for the directory to appear instead of a fixed sleep — returns as
+    # soon as permission is granted (up to 30s, then continues anyway).
+    for i in $(seq 1 30); do
+        [ -d ~/storage ] && break
+        sleep 1
+    done
+fi
+if [ -d ~/storage ]; then
     printfc "$GREEN" "Storage configured."
+else
+    printfc "$YELLOW" "Storage access not granted - continuing anyway."
 fi
 
 # ==============================================================================
@@ -67,18 +75,34 @@ pkg update -y -o Dpkg::Use-Pty=0 || {
     had_error=1
 }
 
+# Collect missing packages first, then install them in a single apt
+# transaction — one 'pkg install' per package would pay the full apt startup
+# cost for each one.
+missing=""
 for pkg in $SETUP_PKGS; do
-    if ! dpkg -s "$pkg" &>/dev/null; then
-        if pkg install -y "$pkg"; then
-            printfc "$GREEN" "Installed %s" "$pkg"
-        else
-            printfc "$RED" "Failed: %s" "$pkg"
-            had_error=1
-        fi
-    else
+    if dpkg -s "$pkg" &>/dev/null; then
         printfc "$GREEN" "%s already installed." "$pkg"
+    else
+        missing+="$pkg "
     fi
 done
+
+if [ -n "$missing" ]; then
+    if pkg install -y $missing; then
+        printfc "$GREEN" "Installed: %s" "$missing"
+    else
+        # Batch failed: retry one by one so a single bad package doesn't
+        # mask the ones that would otherwise succeed.
+        for pkg in $missing; do
+            if pkg install -y "$pkg"; then
+                printfc "$GREEN" "Installed %s" "$pkg"
+            else
+                printfc "$RED" "Failed: %s" "$pkg"
+                had_error=1
+            fi
+        done
+    fi
+fi
 
 # ==============================================================================
 # 2. DOTFILE LINKS
@@ -158,7 +182,8 @@ fi
 
 if command -v sv-enable &>/dev/null; then
     source "$BOOT_SERVICES"
-    sleep 3
+    # No fixed sleep here: the sv up retry loop below waits for runsvdir to
+    # pick up the service.
     sv-enable sshd
     ssh_up=0
     for i in $(seq 1 10); do

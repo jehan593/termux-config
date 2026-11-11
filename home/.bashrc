@@ -22,7 +22,34 @@ shopt -s histappend
 # --- Default Editor ---
 export EDITOR=nvim
 
-eval "$(starship init bash)"
+# Shared runtime cache (sys battery/IP data, starship init script, ...)
+_SYS_CACHE_DIR="$HOME/.cache/termux-config"
+_SYS_CACHE="$_SYS_CACHE_DIR/sys"
+_SYS_TTL=60
+
+# --- Shell Prompt ---
+
+# starship's init script costs a process spawn on every shell start. Its
+# output is deterministic for a given starship version, so cache it keyed by
+# version — a starship upgrade regenerates automatically, and any cache
+# problem falls back to the direct eval.
+_init_starship_cached() {
+    local ver cache_file
+    ver=$(starship --version 2>/dev/null | awk 'NR==1 {print $2}')
+    if [ -n "$ver" ]; then
+        cache_file="$_SYS_CACHE_DIR/starship-init-$ver.bash"
+        if [ ! -s "$cache_file" ]; then
+            mkdir -p "$_SYS_CACHE_DIR"
+            starship init bash > "$cache_file" 2>/dev/null || rm -f "$cache_file"
+        fi
+        if [ -s "$cache_file" ]; then
+            source "$cache_file"
+            return
+        fi
+    fi
+    eval "$(starship init bash)"
+}
+_init_starship_cached
 eval "$(zoxide init bash)"
 
 # --- System Functions ---
@@ -36,34 +63,65 @@ tage() {
     printfc "$NORD_SNOW_1" "%s day(s)" "$(_termux_age_days)"
 }
 
+# Battery and IP come from the Termux:API app (hundreds of ms up to seconds per
+# call), and sys runs on every shell start and every 'clear'. Cache both with a
+# short TTL and refresh the two queries in parallel when the cache expires.
+# (_SYS_CACHE_DIR / _SYS_TTL are defined in the shell prompt section above.)
+
+_sys_refresh() {
+    mkdir -p "$_SYS_CACHE_DIR"
+    local batt_file="$_SYS_CACHE_DIR/.batt" ip_file="$_SYS_CACHE_DIR/.ip"
+    timeout 2 termux-battery-status 2>/dev/null > "$batt_file" &
+    local pid_batt=$!
+    timeout 2 termux-wifi-connectioninfo 2>/dev/null > "$ip_file" &
+    local pid_ip=$!
+    # Wait on the specific pids only — plain 'wait' would also block on any
+    # user background job.
+    wait "$pid_batt" "$pid_ip" 2>/dev/null
+
+    local batt_pct batt_state
+    eval "$(awk -F'[:,]' '
+        /percentage/ { gsub(/ /,"",$2); print "batt_pct=" $2 }
+        /status/     { gsub(/[" ]/,"",$2); print "batt_state=" $2 }
+    ' "$batt_file")"
+    local batt_status="N/A"
+    [ -n "$batt_pct" ] && batt_status="${batt_pct}% (${batt_state,,})"
+
+    local ip
+    ip=$(grep -i '"ip"' "$ip_file" | awk -F'"' '{print $4}' | grep -v '^0')
+    [ -z "$ip" ] && ip="-"
+
+    printf '%s\n%s\n%s\n' "$(date +%s)" "$batt_status" "$ip" > "$_SYS_CACHE"
+    rm -f "$batt_file" "$ip_file"
+}
+
 sys() {
-    # 1. Data Gathering
-    local pkg_count=$(dpkg --get-selections 2>/dev/null | wc -l)
+    # 1. Data Gathering — cheap local calls only. The package count greps
+    #    dpkg's status file directly instead of spawning the dpkg binary.
+    local pkg_count=$(grep -c '^Package:' "$PREFIX/var/lib/dpkg/status" 2>/dev/null)
     local ker=$(uname -r | cut -d'-' -f1)
     local cuser=$(whoami)
     local mem=$(free -h | awk '/^Mem:/ {print $3 " / " $2}')
     local uptime_str=$(uptime -p | sed 's/up //')
     local storage=$(df -h /data 2>/dev/null | awk 'NR==2{print $3 " / " $2 " (" $5 " used)"}')
 
-    # 2. Battery Logic
-    local batt_raw=$(timeout 2 termux-battery-status 2>/dev/null)
-    local batt_pct batt_state
-    eval "$(echo "$batt_raw" | awk -F'[:,]' '
-        /percentage/ { gsub(/ /,"",$2); print "batt_pct=" $2 }
-        /status/     { gsub(/[" ]/,"",$2); print "batt_state=" $2 }
-    ')"
-
-    if [[ -z "$batt_pct" ]]; then
-        local batt_status="N/A"
-    else
-        local batt_status="${batt_pct}% (${batt_state,,})"
+    # 2. Battery + IP — use the cache when it is younger than _SYS_TTL.
+    local cache_ok=0
+    if [ -f "$_SYS_CACHE" ]; then
+        local cache_ts=$(head -n1 "$_SYS_CACHE")
+        case "$cache_ts" in
+            ''|*[!0-9]*) ;;
+            *) (( $(date +%s) - cache_ts < _SYS_TTL )) && cache_ok=1 ;;
+        esac
     fi
+    [ "$cache_ok" = 1 ] || _sys_refresh
 
-    # 3. Network Logic
-    local ip_addr=$(timeout 2 termux-wifi-connectioninfo 2>/dev/null | grep -i '"ip"' | awk -F'"' '{print $4}' | grep -v '^0')
-    [[ -z "$ip_addr" ]] && ip_addr="-"
+    local -a cache=()
+    mapfile -t cache < "$_SYS_CACHE"
+    local batt_status="${cache[1]:-N/A}"
+    local ip_addr="${cache[2]:--}"
 
-    # 4. Formatting and Output
+    # 3. Formatting and Output
     printfc "$NORD_SNOW_1" "\n%s  %-12s %s" "󰩟" "Local IP"   "$ip_addr"
     printfc "$NORD_SNOW_1" "%s  %-12s %s" ""  "User"       "$cuser"
     printfc "$NORD_SNOW_1" "%s  %-12s %s" "󱑎" "Uptime"     "$uptime_str"
@@ -113,6 +171,18 @@ _print_upgradable() {
 cup() {
     source "$TERMUX_CONFIG_PATH/helpers/font.sh"
 
+    # Kick off the two quick network checks while the slow 'pkg update' runs,
+    # then collect their results below — the section order is unchanged.
+    _font_check > /dev/null 2>&1 &
+    local font_pid=$!
+    local git_file="$_SYS_CACHE_DIR/cup-git.$$"
+    mkdir -p "$_SYS_CACHE_DIR"
+    (
+        git -C "$TERMUX_CONFIG_PATH" fetch --quiet 2>/dev/null
+        git -C "$TERMUX_CONFIG_PATH" rev-list --count 'HEAD..@{u}' 2>/dev/null
+    ) > "$git_file" &
+    local git_pid=$!
+
     printfc "$NORD_BLUE" "\n>Packages"
     if ! pkg update -y -o Dpkg::Use-Pty=0 > /dev/null 2>&1; then
         printfc "$NORD_RED" "Could not refresh the package list. Showing saved results."
@@ -120,12 +190,8 @@ cup() {
     _print_upgradable "$(_upgradable_pkgs)"
 
     printfc "$NORD_BLUE" "\n>Martian Mono Font"
-    local font_rc
-    if _font_check; then
-        font_rc=0
-    else
-        font_rc=$?
-    fi
+    wait "$font_pid" 2>/dev/null
+    local font_rc=$?
     case "$font_rc" in
         0)  printfc "$NORD_YELLOW" "Update available." ;;
         2)  printfc "$NORD_YELLOW" "Could not check for font updates. Try again later." ;;
@@ -133,8 +199,10 @@ cup() {
     esac
 
     printfc "$NORD_BLUE" "\n>Termux Config"
-    git -C "$TERMUX_CONFIG_PATH" fetch --quiet 2>/dev/null
-    local behind=$(git -C "$TERMUX_CONFIG_PATH" rev-list --count 'HEAD..@{u}' 2>/dev/null)
+    wait "$git_pid" 2>/dev/null
+    local behind=""
+    [ -f "$git_file" ] && behind=$(head -n1 "$git_file")
+    rm -f "$git_file"
     case "$behind" in
         ''|0) printfc "$NORD_GREEN" "Up to date." ;;
         *)    printfc "$NORD_YELLOW" "%s new commit(s). Run 'upc'." "$behind" ;;
@@ -152,7 +220,10 @@ upp() {
         echo ""
     fi
 
-    if pkg upgrade -y; then
+    # 'pkg upgrade' would run 'apt update' again internally (pkg is a wrapper:
+    # select_mirror + apt update + apt full-upgrade). The index is already
+    # fresh from the refresh above, so jump straight to the upgrade transaction.
+    if apt full-upgrade -y; then
         printfc "$NORD_GREEN" "Upgrade complete."
     else
         printfc "$NORD_RED" "Upgrade failed."
@@ -222,7 +293,7 @@ inst() {
 }
 
 uinst() {
-    local selected=$(dpkg --get-selections 2>/dev/null | grep -v deinstall | awk '{print $1}' | sort | fzf \
+    local selected=$(dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 2>/dev/null | awk '$1 ~ /^ii/ {print $2}' | fzf \
         -m \
         --header='(TAB: Select, Enter: Uninstall)' \
         --prompt="Uninstall > " \
