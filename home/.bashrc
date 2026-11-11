@@ -32,15 +32,17 @@ _SYS_TTL=60
 # starship's init script costs a process spawn on every shell start. Its
 # output is deterministic for a given starship version, so cache it keyed by
 # version — a starship upgrade regenerates automatically, and any cache
-# problem falls back to the direct eval.
+# problem falls back to the direct eval. Use --print-full-init: plain
+# `init bash` only emits a one-line bootstrap that would still spawn starship
+# on every shell start, making the cache pointless.
 _init_starship_cached() {
     local ver cache_file
     ver=$(starship --version 2>/dev/null | awk 'NR==1 {print $2}')
     if [ -n "$ver" ]; then
-        cache_file="$_SYS_CACHE_DIR/starship-init-$ver.bash"
+        cache_file="$_SYS_CACHE_DIR/starship-$ver-full.bash"
         if [ ! -s "$cache_file" ]; then
             mkdir -p "$_SYS_CACHE_DIR"
-            starship init bash > "$cache_file" 2>/dev/null || rm -f "$cache_file"
+            starship init bash --print-full-init > "$cache_file" 2>/dev/null || rm -f "$cache_file"
         fi
         if [ -s "$cache_file" ]; then
             source "$cache_file"
