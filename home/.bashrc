@@ -70,29 +70,22 @@ tage() {
 
 _sys_refresh() {
     mkdir -p "$_SYS_CACHE_DIR"
-    local batt_file="$_SYS_CACHE_DIR/.batt" ip_file="$_SYS_CACHE_DIR/.ip"
-    timeout 2 termux-battery-status 2>/dev/null > "$batt_file" &
-    local pid_batt=$!
-    timeout 2 termux-wifi-connectioninfo 2>/dev/null > "$ip_file" &
-    local pid_ip=$!
-    # Wait on the specific pids only — plain 'wait' would also block on any
-    # user background job.
-    wait "$pid_batt" "$pid_ip" 2>/dev/null
-
+    # NOTE: these two calls are sequential on purpose — concurrent termux-api
+    # calls can clobber each other's result, which showed up as Battery stuck
+    # on N/A. The cache keeps this off the hot path (at most once per TTL).
     local batt_pct batt_state
-    eval "$(awk -F'[:,]' '
+    eval "$(timeout 2 termux-battery-status 2>/dev/null | awk -F'[:,]' '
         /percentage/ { gsub(/ /,"",$2); print "batt_pct=" $2 }
         /status/     { gsub(/[" ]/,"",$2); print "batt_state=" $2 }
-    ' "$batt_file")"
+    ')"
     local batt_status="N/A"
     [ -n "$batt_pct" ] && batt_status="${batt_pct}% (${batt_state,,})"
 
     local ip
-    ip=$(grep -i '"ip"' "$ip_file" | awk -F'"' '{print $4}' | grep -v '^0')
+    ip=$(timeout 2 termux-wifi-connectioninfo 2>/dev/null | grep -i '"ip"' | awk -F'"' '{print $4}' | grep -v '^0')
     [ -z "$ip" ] && ip="-"
 
     printf '%s\n%s\n%s\n' "$(date +%s)" "$batt_status" "$ip" > "$_SYS_CACHE"
-    rm -f "$batt_file" "$ip_file"
 }
 
 sys() {
@@ -170,6 +163,14 @@ _print_upgradable() {
 
 cup() {
     source "$TERMUX_CONFIG_PATH/helpers/font.sh"
+
+    # Background checks would print job-control noise ("[1] 1234", "Exit 1")
+    # into the output in an interactive shell — silence it while they run.
+    # The RETURN trap restores the shell's monitor state however we exit.
+    local __monitor_was_on=0
+    [[ -o monitor ]] && __monitor_was_on=1
+    set +m
+    trap '(( __monitor_was_on )) && set -m; trap - RETURN' RETURN
 
     # Kick off the two quick network checks while the slow 'pkg update' runs,
     # then collect their results below — the section order is unchanged.

@@ -87,6 +87,11 @@ list_proxies() {
 
     # Run every connectivity test in parallel (each can take up to 2s), then
     # print the rows in service order — output is identical to sequential.
+    # Monitor is toggled off so the interactive shell doesn't print job
+    # notifications between the rows.
+    local __monitor_was_on=0
+    [[ -o monitor ]] && __monitor_was_on=1
+    set +m
     local -a names=() states=() ports=() pids=()
     local test_dir
     test_dir=$(mktemp -d)
@@ -112,6 +117,7 @@ list_proxies() {
         ((i++))
     done
     wait "${pids[@]}"
+    (( __monitor_was_on )) && set -m
 
     for i in "${!names[@]}"; do
         local test_result
