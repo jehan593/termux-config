@@ -372,6 +372,189 @@ trash() {
     done
 }
 
+# --- Trash management (layout: ~/.trash/files/<name>, ~/.trash/info/<name>.trashinfo) ---
+
+# Decodes the percent-encoded Path= value from a .trashinfo file.
+# trash-put writes Path= relative to the volume root (here /data), without the
+# leading "/". Resolve it against that mount point; otherwise restores would
+# land relative to the current directory.
+_trash_decode() {
+    local p top
+    p=$(printf '%b' "${1//%/\\x}")
+    if [[ "$p" != /* ]]; then
+        top=$(stat -c %m "$HOME" 2>/dev/null) || top=""
+        p="${top%/}/$p"
+    fi
+    printf '%s' "$p"
+}
+
+# Prints one "name<TAB>date<TAB>original path" line per trash entry, newest first.
+_trash_entries() {
+    local info name path date line
+    for info in "$HOME/.trash/info"/*.trashinfo; do
+        [ -e "$info" ] || continue
+        name="${info##*/}"
+        name="${name%.trashinfo}"
+        [ -e "$HOME/.trash/files/$name" ] || [ -L "$HOME/.trash/files/$name" ] || continue
+        path=""
+        date=""
+        while IFS= read -r line; do
+            case "$line" in
+                Path=*)         path="${line#Path=}" ;;
+                DeletionDate=*) date="${line#DeletionDate=}" ;;
+            esac
+        done < "$info"
+        date="${date/T/ }"
+        printf '%s\t%s\t%s\n' "$name" "$date" "$(_trash_decode "$path")"
+    done | sort -t$'\t' -k2,2r
+}
+
+# fzf multi-select over trash entries. Shows names only; Ctrl-P toggles a detail
+# pane. The preview reads the entry's fields via fzf's {1}/{2}/{3} placeholders
+# (tab-delimited: name, date, original path). Prints the selected full lines.
+_trash_pick() {
+    local preview='printf "Name:      %s\nOriginal:  %s\nDeleted:   %s\n" {1} {3} {2}
+item="$HOME/.trash/files/"{1}
+if [ -L "$item" ]; then k=symlink; elif [ -d "$item" ]; then k=directory; else k=file; fi
+printf "Type:      %s\nSize:      %s\nTrash:     %s\n" "$k" "$(du -sh -- "$item" 2>/dev/null | cut -f1)" "$item"'
+    _trash_entries | fzf -m \
+        --delimiter=$'\t' \
+        --with-nth=1 \
+        --bind 'ctrl-a:select-all' \
+        --bind 'ctrl-p:toggle-preview' \
+        --preview "$preview" \
+        --preview-window=hidden:up:wrap \
+        --header="$1" \
+        --prompt="$2"
+}
+
+# Asks a [Y/n] question. Enter defaults to yes; y/yes is yes, anything else is no.
+_trash_confirm() {
+    local reply
+    printfc -n "$NORD_RED" "%s [Y/n] " "$1"
+    read -r reply
+    [[ -z "$reply" || "$reply" =~ ^[yY]([eE][sS])?$ ]]
+}
+
+trashls() {
+    local entries name date path
+    entries=$(_trash_entries)
+    if [ -z "$entries" ]; then
+        printfc "$NORD_GREEN" "Trash is empty."
+        return 0
+    fi
+
+    printfc "$NORD_BLUE" "\n>Trash"
+    while IFS=$'\t' read -r name date path; do
+        printfc -n "$NORD_SNOW_1" "%s  " "$path"
+        printfc "$NORD_YELLOW" "%s" "$date"
+    done <<< "$entries"
+    printfc "$NORD_YELLOW" "\n%s item(s)." "$(grep -c . <<< "$entries")"
+    echo ""
+}
+
+trashclean() {
+    local entries count name date path
+    entries=$(_trash_entries)
+    count=$(ls -A "$HOME/.trash/files" 2>/dev/null | grep -c .)
+    if [ "$count" -eq 0 ]; then
+        printfc "$NORD_GREEN" "Trash is empty."
+        return 0
+    fi
+
+    printfc "$NORD_YELLOW" "\nAbout to permanently delete:"
+    if [ -n "$entries" ]; then
+        while IFS=$'\t' read -r name date path; do
+            printfc "$NORD_SNOW_1" "  - %s" "$path"
+        done <<< "$entries"
+    fi
+    echo ""
+
+    if ! _trash_confirm "Permanently delete all $count item(s) in trash? This cannot be undone."; then
+        printfc "$NORD_SNOW_1" "Cancelled."
+        return 0
+    fi
+
+    yes | trash-empty --trash-dir "$HOME/.trash" 0
+    printfc "$NORD_GREEN" "Trash emptied."
+}
+
+trashdel() {
+    if [ -z "$(_trash_entries)" ]; then
+        printfc "$NORD_GREEN" "Trash is empty."
+        return 0
+    fi
+
+    local selected
+    selected=$(_trash_pick "(TAB: Select, Ctrl-A: All, Ctrl-P: Details)" "Delete > ")
+    [[ -z "$selected" ]] && return 0
+
+    local count name date path
+    count=$(grep -c . <<< "$selected")
+
+    printfc "$NORD_YELLOW" "\nSelected for permanent deletion:"
+    while IFS=$'\t' read -r name date path; do
+        printfc "$NORD_SNOW_1" "  - %s" "$path"
+    done <<< "$selected"
+    echo ""
+
+    if ! _trash_confirm "Permanently delete $count item(s)? This cannot be undone."; then
+        printfc "$NORD_SNOW_1" "Cancelled."
+        return 0
+    fi
+
+    while IFS=$'\t' read -r name date path; do
+        rm -rf -- "$HOME/.trash/files/$name" "$HOME/.trash/info/$name.trashinfo"
+    done <<< "$selected"
+    printfc "$NORD_GREEN" "Deleted %s item(s)." "$count"
+}
+
+trashres() {
+    if [ -z "$(_trash_entries)" ]; then
+        printfc "$NORD_GREEN" "Trash is empty."
+        return 0
+    fi
+
+    local selected
+    selected=$(_trash_pick "(TAB: Select, Ctrl-A: All, Ctrl-P: Details)" "Restore > ")
+    [[ -z "$selected" ]] && return 0
+
+    local count name date path src dest
+    count=$(grep -c . <<< "$selected")
+
+    printfc "$NORD_YELLOW" "\nSelected for restore:"
+    while IFS=$'\t' read -r name date path; do
+        printfc "$NORD_SNOW_1" "  - %s" "$path"
+    done <<< "$selected"
+    echo ""
+
+    if ! _trash_confirm "Restore $count item(s) to their original location?"; then
+        printfc "$NORD_SNOW_1" "Cancelled."
+        return 0
+    fi
+
+    while IFS=$'\t' read -r name date path; do
+        src="$HOME/.trash/files/$name"
+        dest="$path"
+
+        # Never overwrite a file that now exists at the original location.
+        if [ -e "$dest" ] || [ -L "$dest" ]; then
+            printfc "$NORD_RED" "Already exists, skipped: %s" "$dest"
+            continue
+        fi
+        if ! command mkdir -p -- "$(dirname -- "$dest")"; then
+            printfc "$NORD_RED" "Cannot create parent directory for: %s" "$dest"
+            continue
+        fi
+        if mv -- "$src" "$dest"; then
+            rm -f -- "$HOME/.trash/info/$name.trashinfo"
+            printfc "$NORD_GREEN" "Restored: %s" "$dest"
+        else
+            printfc "$NORD_RED" "Failed to restore: %s" "$dest"
+        fi
+    done <<< "$selected"
+}
+
 cleanimg() {
     if [ $# -eq 0 ]; then
         printfc "$NORD_YELLOW" "Usage: cleanimg <image>..."
