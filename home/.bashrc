@@ -57,7 +57,9 @@ eval "$(zoxide init bash)"
 # --- System Functions ---
 
 _termux_age_days() {
-    local install_epoch=$(stat -c %Y "$PREFIX")
+    # $PREFIX's own mtime changes on every package install, so use the app data
+    # root (/data/data/com.termux), which is only created at app install.
+    local install_epoch=$(stat -c %Y "${PREFIX%/files/usr}")
     echo $(( ($(date +%s) - install_epoch) / 86400 ))
 }
 
