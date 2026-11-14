@@ -144,6 +144,21 @@ printfc "$GREEN" "Created system profile script: %s" "$CONFIG_ENV_FILE"
 source "$CONFIG_ENV_FILE"
 
 # ==============================================================================
+# 2c. GIT CREDENTIAL STORE
+# ==============================================================================
+
+printfc "$BLUE" "\n>Git Credentials"
+
+if ! command -v git &>/dev/null; then
+    printfc "$YELLOW" "git missing. Skipped credential store."
+elif [ -n "$(git config --global --get credential.helper)" ]; then
+    printfc "$GREEN" "Git credential helper already set."
+else
+    git config --global credential.helper store
+    printfc "$GREEN" "Git credential helper set to store (plain text, ~/.git-credentials)."
+fi
+
+# ==============================================================================
 # 3. TEALDEER
 # ==============================================================================
 

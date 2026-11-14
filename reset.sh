@@ -86,6 +86,32 @@ else
 fi
 
 # ==============================================================================
+# 2d. GIT CREDENTIAL STORE CLEANUP
+# ==============================================================================
+
+printfc "$BLUE" "\n>Git Credentials Cleanup"
+
+if command -v git &>/dev/null && [ "$(git config --global --get credential.helper)" = "store" ]; then
+    git config --global --unset credential.helper
+    printfc "$GREEN" "Git credential helper unset."
+else
+    printfc "$YELLOW" "Git credential helper not set to store. Left unchanged."
+fi
+
+if [ -f "$HOME/.git-credentials" ]; then
+    printfc -n "$YELLOW" "Delete saved git credentials (~/.git-credentials)? [y/N]: "
+    read -r confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        rm -f "$HOME/.git-credentials"
+        printfc "$GREEN" "Saved git credentials removed."
+    else
+        printfc "$YELLOW" "Kept ~/.git-credentials."
+    fi
+else
+    printfc "$YELLOW" "No saved git credentials found."
+fi
+
+# ==============================================================================
 # 3. WPM BACKUP AND REMOVAL
 # ==============================================================================
 
